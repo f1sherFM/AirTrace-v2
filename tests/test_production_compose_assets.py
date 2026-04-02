@@ -14,6 +14,8 @@ def test_production_compose_profile_has_required_services_and_policies():
     assert content.count("restart: unless-stopped") >= 4
     assert content.count("healthcheck:") >= 4
     assert "API_BASE_URL: http://api:8000" in content
+    assert '"127.0.0.1:8000:8000"' in content
+    assert '"127.0.0.1:3000:3000"' in content
     assert "profiles:" in content and "- with-db" in content
     assert "SENTRY_DSN: ${SENTRY_DSN:-}" in content
     assert "SENTRY_ENVIRONMENT: ${SENTRY_ENVIRONMENT:-production}" in content

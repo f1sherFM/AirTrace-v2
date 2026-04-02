@@ -116,5 +116,6 @@ docker compose -f docker-compose.prod.yml down -v
 ## Notes
 
 - The current compose profile does not yet include a reverse proxy. For public internet exposure, put Nginx or Caddy in front of `api` and `web`.
+- In production compose, `api` and `web` are bound to `127.0.0.1`, so they stay reachable for the local reverse proxy but are not exposed directly on the VPS public interface.
 - Do not commit `.env.production`.
 - First deploy should be verified with manual health checks before DNS cutover.
