@@ -1,0 +1,130 @@
+# 🤝 Contributing to AirTrace RU
+
+Спасибо за интерес к проекту AirTrace RU! Мы приветствуем любой вклад в развитие системы мониторинга качества воздуха.
+
+## 🚀 Как внести вклад
+
+### 1. Сообщить об ошибке
+- Создайте [Issue](https://github.com/f1sherFM/Airtrace-RU/issues) с описанием проблемы
+- Укажите шаги для воспроизведения
+- Приложите скриншоты, если это поможет
+
+### 2. Предложить улучшение
+- Создайте [Issue](https://github.com/f1sherFM/Airtrace-RU/issues) с тегом "enhancement"
+- Опишите предлагаемую функциональность
+- Объясните, как это поможет пользователям
+
+### 3. Внести изменения в код
+1. Сделайте Fork репозитория
+2. Создайте ветку для ваших изменений: `git checkout -b feature/amazing-feature`
+3. Внесите изменения и добавьте тесты
+4. Убедитесь, что все тесты проходят: `pytest tests/ -v`
+5. Сделайте коммит: `git commit -m "✨ Add amazing feature"`
+6. Отправьте изменения: `git push origin feature/amazing-feature`
+7. Создайте Pull Request
+
+## 📋 Требования к коду
+
+### Стиль кода
+- Следуйте PEP 8 для Python кода
+- Используйте type hints
+- Добавляйте docstrings для функций и классов
+- Комментируйте сложную логику
+
+### Тестирование
+- Добавляйте unit тесты для новой функциональности
+- Используйте property-based тесты для сложной логики
+- Убедитесь, что покрытие тестами не снижается
+- Запустите все тесты перед отправкой PR
+
+### Коммиты
+Используйте conventional commits с эмодзи:
+- ✨ `:sparkles:` - новая функциональность
+- 🐛 `:bug:` - исправление ошибки
+- 📚 `:books:` - документация
+- 🎨 `:art:` - улучшение UI/UX
+- ⚡ `:zap:` - улучшение производительности
+- 🧪 `:test_tube:` - добавление тестов
+- 🔧 `:wrench:` - изменение конфигурации
+
+## 🏗️ Структура проекта
+
+```
+├── main.py              # FastAPI приложение
+├── services.py          # Интеграция с Open-Meteo API
+├── utils.py             # AQI калькулятор и НМУ детектор
+├── schemas.py           # Pydantic модели
+├── middleware.py        # Privacy middleware
+├── start_app.py         # Единый запуск API + Web
+├── tests/               # Тесты
+└── web/                 # Веб-интерфейс
+    ├── web_app.py       # FastAPI веб-приложение
+    ├── templates/       # Jinja2 шаблоны
+    └── static/          # CSS, JS, изображения
+```
+
+## 🧪 Запуск тестов
+
+```bash
+# Все тесты
+pytest tests/ -v
+
+# Только unit тесты
+pytest tests/test_basic.py tests/test_unit_*.py -v
+
+# Property-based тесты
+pytest tests/test_property_*.py -v
+
+# С покрытием
+pytest tests/ --cov=. --cov-report=html
+```
+
+## 🛡️ Contract Gate в CI (v4)
+
+- Workflow: `.github/workflows/contract-tests.yml`
+- Для protected branch сделайте обязательным статус-check: `contract-tests`
+- Snapshot тест контракта: `tests/test_contract_snapshot.py`
+- Осознанное обновление snapshot:
+```bash
+UPDATE_CONTRACT_SNAPSHOT=1 python -m pytest -q tests/test_contract_snapshot.py
+```
+
+## 🌍 Локализация
+
+Мы приветствуем переводы на другие языки:
+- Создайте папку `locales/{language_code}/`
+- Переведите строки в шаблонах
+- Добавьте поддержку языка в `web_app.py`
+
+## 📊 Области для вклада
+
+### Высокий приоритет
+- 🌍 Поддержка других стран и стандартов качества воздуха
+- 📱 Мобильное приложение
+- 🔔 Система уведомлений
+- 📈 Исторические данные и аналитика
+
+### Средний приоритет
+- 🗺️ Интеграция с картами
+- 🌡️ Дополнительные метеорологические данные
+- 🎨 Темы оформления
+- 🔍 Поиск по адресу
+
+### Низкий приоритет
+- 📊 Экспорт данных
+- 🤖 Telegram/Discord боты
+- 📧 Email рассылки
+- 🔗 API для сторонних разработчиков
+
+## 💬 Связь
+
+- GitHub Issues: [Создать Issue](https://github.com/f1sherFM/Airtrace-RU/issues)
+- Discussions: [GitHub Discussions](https://github.com/f1sherFM/Airtrace-RU/discussions)
+
+## 📜 Лицензия
+
+Внося вклад в проект, вы соглашаетесь с тем, что ваш код будет лицензирован под [MIT License](LICENSE).
+
+---
+
+**Спасибо за ваш вклад в улучшение экологической ситуации! 🌱**

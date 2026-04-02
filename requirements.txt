@@ -1,0 +1,36 @@
+# Core dependencies for AirTrace RU Backend
+fastapi>=0.104.0
+uvicorn[standard]>=0.24.0
+httpx>=0.25.0
+pydantic>=2.4.0
+PyYAML>=6.0.2
+SQLAlchemy>=2.0.36
+alembic>=1.14.0
+asyncpg>=0.30.0
+python-multipart>=0.0.6
+
+# Redis dependencies for distributed caching
+redis>=5.0.0
+aioredis>=2.0.0
+
+# ✅ FIX #7: Fast JSON serialization
+orjson>=3.9.0
+
+# Web interface dependencies
+jinja2>=3.1.0
+
+# System monitoring dependencies
+psutil>=5.9.0
+sentry-sdk[fastapi]>=2.0.0
+
+# Testing dependencies
+pytest>=7.4.0
+pytest-asyncio>=0.21.0
+hypothesis>=6.88.0
+aiosqlite>=0.20.0
+
+# Development dependencies
+black>=23.9.0
+isort>=5.12.0
+flake8>=6.1.0
+mypy>=1.6.0

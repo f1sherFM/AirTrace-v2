@@ -1,0 +1,353 @@
+{% extends "base.html" %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+    
+    <!-- Форма ввода -->
+    <div class="glass-enhanced rounded-3xl p-8">
+        <h2 class="text-2xl font-bold mb-6 flex items-center gap-3">
+            <i data-lucide="map-pin" class="w-6 h-6 text-blue-400"></i>
+            Произвольный город
+        </h2>
+        
+        <form id="custom-city-form" method="post" action="/custom" class="space-y-6">
+            <!-- Название города (опционально) -->
+            <div>
+                <label for="city_name" class="block text-sm font-medium mb-2 opacity-80">
+                    Название города (опционально)
+                </label>
+                <input 
+                    type="text" 
+                    id="city_name" 
+                    name="city_name" 
+                    placeholder="Например: Владивосток"
+                    class="w-full px-4 py-3 rounded-xl bg-white/10 border border-white/20 text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent"
+                >
+            </div>
+            
+            <!-- Координаты -->
+            <div class="space-y-4">
+                <!-- Переключатель формата -->
+                <fieldset class="mb-4" aria-labelledby="coord-format-label">
+                    <legend id="coord-format-label" class="text-sm font-medium opacity-80 mb-2">Формат координат:</legend>
+                    <div class="flex gap-2">
+                        <button 
+                            type="button" 
+                            id="decimal-btn" 
+                            onclick="switchFormat('decimal')"
+                            class="px-3 py-1 rounded-lg text-xs bg-blue-500/30 border border-blue-500/50 transition-colors"
+                        >
+                            Десятичные
+                        </button>
+                        <button 
+                            type="button" 
+                            id="dms-btn" 
+                            onclick="switchFormat('dms')"
+                            class="px-3 py-1 rounded-lg text-xs bg-white/10 border border-white/20 hover:bg-white/20 transition-colors"
+                        >
+                            Градусы-минуты-секунды
+                        </button>
+                        <button 
+                            type="button" 
+                            id="text-btn" 
+                            onclick="switchFormat('text')"
+                            class="px-3 py-1 rounded-lg text-xs bg-white/10 border border-white/20 hover:bg-white/20 transition-colors"
+                        >
+                            Текстовый ввод
+                        </button>
+                    </div>
+                </fieldset>
+                
+                <!-- Десятичные координаты -->
+                <div id="decimal-inputs" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label for="lat" class="block text-sm font-medium mb-2 opacity-80">
+                            Широта <span class="text-red-400">*</span>
+                        </label>
+                        <input 
+                            type="number" 
+                            id="lat" 
+                            name="lat" 
+                            step="0.0001"
+                            min="-90"
+                            max="90"
+                            placeholder="61.25"
+                            required
+                            class="w-full px-4 py-3 rounded-xl bg-white/10 border border-white/20 text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent"
+                        >
+                        <p class="text-xs opacity-60 mt-1">От -90 до 90</p>
+                    </div>
+                    
+                    <div>
+                        <label for="lon" class="block text-sm font-medium mb-2 opacity-80">
+                            Долгота <span class="text-red-400">*</span>
+                        </label>
+                        <input 
+                            type="number" 
+                            id="lon" 
+                            name="lon" 
+                            step="0.0001"
+                            min="-180"
+                            max="180"
+                            placeholder="73.4333"
+                            required
+                            class="w-full px-4 py-3 rounded-xl bg-white/10 border border-white/20 text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent"
+                        >
+                        <p class="text-xs opacity-60 mt-1">От -180 до 180</p>
+                    </div>
+                </div>
+                
+                <!-- Градусы-минуты-секунды -->
+                <div id="dms-inputs" class="hidden space-y-4">
+                    <!-- Широта DMS -->
+                    <div>
+                        <label class="block text-sm font-medium mb-2 opacity-80">
+                            Широта <span class="text-red-400">*</span>
+                        </label>
+                        <div class="grid grid-cols-4 gap-2">
+                            <input 
+                                type="number" 
+                                id="lat-deg" 
+                                placeholder="61"
+                                min="0" max="90"
+                                class="px-3 py-2 rounded-lg bg-white/10 border border-white/20 text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-blue-400"
+                            >
+                            <input 
+                                type="number" 
+                                id="lat-min" 
+                                placeholder="15"
+                                min="0" max="59"
+                                class="px-3 py-2 rounded-lg bg-white/10 border border-white/20 text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-blue-400"
+                            >
+                            <input 
+                                type="number" 
+                                id="lat-sec" 
+                                placeholder="0"
+                                min="0" max="59.999"
+                                step="0.001"
+                                class="px-3 py-2 rounded-lg bg-white/10 border border-white/20 text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-blue-400"
+                            >
+                            <select 
+                                id="lat-dir"
+                                class="px-3 py-2 rounded-lg bg-white/10 border border-white/20 text-white focus:outline-none focus:ring-2 focus:ring-blue-400"
+                            >
+                                <option value="N">С</option>
+                                <option value="S">Ю</option>
+                            </select>
+                        </div>
+                        <p class="text-xs opacity-60 mt-1">Градусы | Минуты | Секунды | Направление</p>
+                    </div>
+                    
+                    <!-- Долгота DMS -->
+                    <div>
+                        <label class="block text-sm font-medium mb-2 opacity-80">
+                            Долгота <span class="text-red-400">*</span>
+                        </label>
+                        <div class="grid grid-cols-4 gap-2">
+                            <input 
+                                type="number" 
+                                id="lon-deg" 
+                                placeholder="73"
+                                min="0" max="180"
+                                class="px-3 py-2 rounded-lg bg-white/10 border border-white/20 text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-blue-400"
+                            >
+                            <input 
+                                type="number" 
+                                id="lon-min" 
+                                placeholder="26"
+                                min="0" max="59"
+                                class="px-3 py-2 rounded-lg bg-white/10 border border-white/20 text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-blue-400"
+                            >
+                            <input 
+                                type="number" 
+                                id="lon-sec" 
+                                placeholder="0"
+                                min="0" max="59.999"
+                                step="0.001"
+                                class="px-3 py-2 rounded-lg bg-white/10 border border-white/20 text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-blue-400"
+                            >
+                            <select 
+                                id="lon-dir"
+                                class="px-3 py-2 rounded-lg bg-white/10 border border-white/20 text-white focus:outline-none focus:ring-2 focus:ring-blue-400"
+                            >
+                                <option value="E">В</option>
+                                <option value="W">З</option>
+                            </select>
+                        </div>
+                        <p class="text-xs opacity-60 mt-1">Градусы | Минуты | Секунды | Направление</p>
+                    </div>
+                    
+                    <!-- Кнопка конвертации -->
+                    <button 
+                        type="button" 
+                        onclick="convertDMSToDecimal()"
+                        class="w-full bg-green-500/20 hover:bg-green-500/30 border border-green-500/50 rounded-xl px-4 py-2 text-sm font-medium transition-colors flex items-center justify-center gap-2"
+                    >
+                        <i data-lucide="calculator" class="w-4 h-4"></i>
+                        Конвертировать в десятичные
+                    </button>
+                </div>
+                
+                <!-- Текстовый ввод координат -->
+                <div id="text-inputs" class="hidden space-y-4">
+                    <div>
+                        <label for="coord-text" class="block text-sm font-medium mb-2 opacity-80">
+                            Координаты в любом формате <span class="text-red-400">*</span>
+                        </label>
+                        <textarea 
+                            id="coord-text" 
+                            placeholder="Примеры:&#10;61°15′00″ с. ш., 73°26′00″ в. д.&#10;61°15'00&quot; N, 73°26'00&quot; E&#10;61 15 00 N 73 26 00 E&#10;61.25, 73.4333"
+                            rows="4"
+                            class="w-full px-4 py-3 rounded-xl bg-white/10 border border-white/20 text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent resize-none"
+                        ></textarea>
+                        <p class="text-xs opacity-60 mt-1">Поддерживаются различные форматы записи координат</p>
+                    </div>
+                    
+                    <!-- Кнопка парсинга -->
+                    <button 
+                        type="button" 
+                        onclick="parseTextCoordinates()"
+                        class="w-full bg-purple-500/20 hover:bg-purple-500/30 border border-purple-500/50 rounded-xl px-4 py-2 text-sm font-medium transition-colors flex items-center justify-center gap-2"
+                    >
+                        <i data-lucide="type" class="w-4 h-4"></i>
+                        Распознать координаты
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Кнопка отправки -->
+            <button 
+                type="submit" 
+                class="w-full btn-glass rounded-xl px-6 py-3 font-semibold flex items-center justify-center gap-2 hover:bg-white/25 transition-all"
+            >
+                <i data-lucide="search" class="w-5 h-5"></i>
+                Получить данные о качестве воздуха
+            </button>
+        </form>
+    </div>
+    
+    <!-- Информация и примеры -->
+    <div class="space-y-6">
+        <!-- Инструкция -->
+        <div class="glass-enhanced rounded-3xl p-6">
+            <h3 class="text-lg font-semibold mb-4 flex items-center gap-2">
+                <i data-lucide="info" class="w-5 h-5 text-blue-400"></i>
+                Как использовать
+            </h3>
+            <div class="space-y-3 text-sm opacity-90">
+                <p>1. <strong>Выберите формат координат</strong>:</p>
+                <ul class="ml-4 space-y-1 text-xs opacity-80">
+                    <li>• <strong>Десятичные</strong> — обычные числа (61.25, 73.4333)</li>
+                    <li>• <strong>Градусы-минуты-секунды</strong> — раздельные поля</li>
+                    <li>• <strong>Текстовый ввод</strong> — скопируйте координаты как есть</li>
+                </ul>
+                <p>2. <strong>Введите координаты</strong> интересующего вас места</p>
+                <p>3. <strong>Опционально</strong> укажите название города</p>
+                <p>4. <strong>Нажмите кнопку</strong> для получения данных</p>
+                <p class="text-xs opacity-70 mt-4">
+                    💡 Координаты можно скопировать из Google Maps, Яндекс.Карт или Википедии
+                </p>
+                <p class="text-xs opacity-70">
+                    🔄 Текстовый ввод поддерживает большинство форматов записи координат
+                </p>
+            </div>
+        </div>
+        
+        <!-- Примеры городов -->
+        <div class="glass-enhanced rounded-3xl p-6">
+            <h3 class="text-lg font-semibold mb-4 flex items-center gap-2">
+                <i data-lucide="map" class="w-5 h-5 text-green-400"></i>
+                Примеры координат
+            </h3>
+            <div class="space-y-3">
+                <div class="flex justify-between items-center p-3 bg-white/5 rounded-lg">
+                    <div>
+                        <div class="font-medium">Владивосток</div>
+                        <div class="text-xs opacity-60">43.1056, 131.8735</div>
+                    </div>
+                    <button 
+                        onclick="fillCoordinates(43.1056, 131.8735, 'Владивосток')"
+                        class="text-xs bg-blue-500/20 hover:bg-blue-500/30 px-2 py-1 rounded transition-colors"
+                    >
+                        Использовать
+                    </button>
+                </div>
+                
+                <div class="flex justify-between items-center p-3 bg-white/5 rounded-lg">
+                    <div>
+                        <div class="font-medium">Сочи</div>
+                        <div class="text-xs opacity-60">43.6028, 39.7342</div>
+                    </div>
+                    <button 
+                        onclick="fillCoordinates(43.6028, 39.7342, 'Сочи')"
+                        class="text-xs bg-blue-500/20 hover:bg-blue-500/30 px-2 py-1 rounded transition-colors"
+                    >
+                        Использовать
+                    </button>
+                </div>
+                
+                <div class="flex justify-between items-center p-3 bg-white/5 rounded-lg">
+                    <div>
+                        <div class="font-medium">Калининград</div>
+                        <div class="text-xs opacity-60">54.7104, 20.4522</div>
+                    </div>
+                    <button 
+                        onclick="fillCoordinates(54.7104, 20.4522, 'Калининград')"
+                        class="text-xs bg-blue-500/20 hover:bg-blue-500/30 px-2 py-1 rounded transition-colors"
+                    >
+                        Использовать
+                    </button>
+                </div>
+                
+                <div class="flex justify-between items-center p-3 bg-white/5 rounded-lg">
+                    <div>
+                        <div class="font-medium">Якутск</div>
+                        <div class="text-xs opacity-60">62.0355, 129.6755</div>
+                    </div>
+                    <button 
+                        onclick="fillCoordinates(62.0355, 129.6755, 'Якутск')"
+                        class="text-xs bg-blue-500/20 hover:bg-blue-500/30 px-2 py-1 rounded transition-colors"
+                    >
+                        Использовать
+                    </button>
+                </div>
+                
+                <div class="flex justify-between items-center p-3 bg-white/5 rounded-lg">
+                    <div>
+                        <div class="font-medium">Сургут</div>
+                        <div class="text-xs opacity-60">61°15′00″ с.ш., 73°26′00″ в.д.</div>
+                    </div>
+                    <button 
+                        onclick="fillTextExample()"
+                        class="text-xs bg-purple-500/20 hover:bg-purple-500/30 px-2 py-1 rounded transition-colors"
+                    >
+                        Текст пример
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Предупреждение -->
+        <div class="glass-enhanced rounded-3xl p-6 border-l-4 border-l-yellow-400">
+            <h3 class="text-lg font-semibold mb-2 flex items-center gap-2">
+                <i data-lucide="alert-triangle" class="w-5 h-5 text-yellow-400"></i>
+                Важно знать
+            </h3>
+            <div class="text-sm opacity-90 space-y-2">
+                <p>• Данные предоставляются сервисом Open-Meteo</p>
+                <p>• Координаты не сохраняются (privacy-first)</p>
+                <p>• Расчет AQI по российским стандартам ПДК</p>
+                <p>• Для некоторых регионов данные могут быть недоступны</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="custom-notification-live" class="sr-only" aria-live="polite"></div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="/static/js/custom_city.js"></script>
+{% endblock %}

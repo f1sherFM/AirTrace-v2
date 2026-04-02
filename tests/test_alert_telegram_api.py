@@ -1,0 +1,142 @@
+"""
+Integration tests for Telegram alert delivery endpoints (Issue 5.2).
+"""
+
+from datetime import datetime, timezone
+from unittest.mock import AsyncMock, patch
+
+import httpx
+import pytest
+
+import main
+from schemas import AQIInfo, AirQualityData, LocationInfo, PollutantData
+
+
+def _sample_air_quality(aqi_value: int = 170, nmu_risk: str = "high") -> AirQualityData:
+    return AirQualityData(
+        timestamp=datetime(2026, 2, 16, 12, 0, tzinfo=timezone.utc),
+        location=LocationInfo(latitude=55.7558, longitude=37.6176),
+        aqi=AQIInfo(value=aqi_value, category="Вредно", color="#EF4444", description="Высокое загрязнение"),
+        pollutants=PollutantData(pm2_5=50.0, pm10=80.0, no2=45.0, so2=16.0, o3=92.0),
+        recommendations="Ограничьте активность на улице",
+        nmu_risk=nmu_risk,
+        health_warnings=["Высокий риск для чувствительных групп"],
+    )
+
+
+@pytest.mark.asyncio
+async def test_telegram_send_endpoint_returns_delivery_result():
+    transport = httpx.ASGITransport(app=main.app)
+    async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
+        with patch.dict("os.environ", {"ALERTS_API_KEY": "test-alert-key"}, clear=False), patch.object(
+            main.telegram_delivery_service,
+            "send_message",
+            AsyncMock(
+                return_value={
+                    "channel": "telegram",
+                    "status": "sent",
+                    "attempts": 1,
+                    "event_id": None,
+                }
+            ),
+        ):
+            resp = await client.post(
+                "/alerts/telegram/send",
+                json={"chat_id": "123", "message": "hello"},
+                headers={"X-API-Key": "test-alert-key"},
+            )
+            assert resp.status_code == 200
+            assert resp.json()["status"] == "sent"
+
+
+@pytest.mark.asyncio
+async def test_telegram_send_endpoint_rejects_missing_api_key():
+    transport = httpx.ASGITransport(app=main.app)
+    async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
+        with patch.dict("os.environ", {"ALERTS_API_KEY": "test-alert-key"}, clear=False):
+            resp = await client.post(
+                "/alerts/telegram/send",
+                json={"chat_id": "123", "message": "hello"},
+            )
+            assert resp.status_code == 401
+
+
+@pytest.mark.asyncio
+async def test_check_current_and_deliver_sends_unsuppressed_alerts():
+    transport = httpx.ASGITransport(app=main.app)
+    async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
+        create_resp = await client.post(
+            "/alerts/rules",
+            json={"name": "AQI>=150", "aqi_threshold": 150, "cooldown_minutes": 30, "nmu_levels": []},
+        )
+        assert create_resp.status_code == 200
+        rule_id = create_resp.json()["id"]
+
+        with patch.dict("os.environ", {"ALERTS_API_KEY": "test-alert-key"}, clear=False), patch.object(
+            main.unified_weather_service,
+            "get_current_combined_data",
+            AsyncMock(return_value=_sample_air_quality()),
+        ), patch.object(
+            main.telegram_delivery_service,
+            "send_message",
+            AsyncMock(return_value={"channel": "telegram", "status": "sent", "attempts": 1, "event_id": "evt"}),
+        ):
+            resp = await client.get(
+                "/alerts/check-current-and-deliver?lat=55.7558&lon=37.6176&chat_id=123",
+                headers={"X-API-Key": "test-alert-key"},
+            )
+            assert resp.status_code == 200
+            items = resp.json()
+            assert len(items) >= 1
+            assert any(item["status"] == "sent" for item in items)
+
+        _ = await client.delete(f"/alerts/rules/{rule_id}")
+
+
+@pytest.mark.asyncio
+async def test_check_current_and_deliver_uses_rule_chat_subscription():
+    transport = httpx.ASGITransport(app=main.app)
+    async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
+        create_resp = await client.post(
+            "/alerts/rules",
+            json={
+                "name": "AQI>=150 subscribed",
+                "aqi_threshold": 150,
+                "cooldown_minutes": 30,
+                "nmu_levels": [],
+                "chat_id": "777",
+            },
+        )
+        assert create_resp.status_code == 200
+        rule_id = create_resp.json()["id"]
+
+        with patch.dict("os.environ", {"ALERTS_API_KEY": "test-alert-key"}, clear=False), patch.object(
+            main.unified_weather_service,
+            "get_current_combined_data",
+            AsyncMock(return_value=_sample_air_quality()),
+        ), patch.object(
+            main.telegram_delivery_service,
+            "send_message",
+            AsyncMock(return_value={"channel": "telegram", "status": "sent", "attempts": 1, "event_id": "evt"}),
+        ) as send_mock:
+            resp = await client.get(
+                "/alerts/check-current-and-deliver?lat=55.7558&lon=37.6176",
+                headers={"X-API-Key": "test-alert-key"},
+            )
+            assert resp.status_code == 200
+            assert any(item["status"] == "sent" for item in resp.json())
+            assert send_mock.await_args.kwargs["chat_id"] == "777"
+
+        _ = await client.delete(f"/alerts/rules/{rule_id}")
+
+
+@pytest.mark.asyncio
+async def test_telegram_delivery_endpoints_require_api_key():
+    transport = httpx.ASGITransport(app=main.app)
+    async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
+        with patch.dict("os.environ", {"ALERTS_API_KEY": "test-alert-key"}, clear=False):
+            resp = await client.post(
+                "/alerts/telegram/send",
+                json={"chat_id": "123", "message": "hello"},
+            )
+            assert resp.status_code == 401

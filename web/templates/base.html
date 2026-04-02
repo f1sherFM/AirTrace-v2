@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}AirTrace RU{% endblock %}</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
+    <link rel="stylesheet" href="/static/style.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&display=swap');
+        :root {
+            --glass-bg: rgba(255, 255, 255, 0.11);
+            --glass-border: rgba(255, 255, 255, 0.18);
+            --panel-bg: rgba(15, 23, 42, 0.34);
+            --focus-ring: #fbbf24;
+        }
+        body { font-family: 'IBM Plex Sans', sans-serif; }
+        .page-bg { background: radial-gradient(circle at top left, #0f766e 0%, #0f172a 44%, #111827 100%); }
+        .glass { background: var(--glass-bg); border: 1px solid var(--glass-border); backdrop-filter: blur(14px); }
+        .panel { background: var(--panel-bg); border: 1px solid rgba(255,255,255,0.12); backdrop-filter: blur(10px); }
+        .btn-glass { background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.16); transition: 0.2s ease; }
+        .btn-glass:hover { background: rgba(255,255,255,0.18); }
+        .aqi-good { background: linear-gradient(135deg, #059669 0%, #10b981 100%); }
+        .aqi-moderate { background: linear-gradient(135deg, #d97706 0%, #f59e0b 100%); }
+        .aqi-unhealthy-sensitive { background: linear-gradient(135deg, #ea580c 0%, #f97316 100%); }
+        .aqi-unhealthy { background: linear-gradient(135deg, #dc2626 0%, #ef4444 100%); }
+        .aqi-very-unhealthy { background: linear-gradient(135deg, #7c3aed 0%, #8b5cf6 100%); }
+        .aqi-hazardous { background: linear-gradient(135deg, #7f1d1d 0%, #991b1b 100%); }
+        :focus-visible { outline: 3px solid var(--focus-ring); outline-offset: 2px; border-radius: 8px; }
+        .skip-link {
+            position: absolute; left: 12px; top: -40px; z-index: 1000;
+            padding: 8px 12px; background: #111827; color: white; border-radius: 8px;
+            border: 1px solid rgba(255,255,255,0.3); transition: top 0.2s ease;
+        }
+        .skip-link:focus { top: 12px; }
+    </style>
+    {% block extra_head %}{% endblock %}
+</head>
+<body class="{% block body_class %}page-bg{% endblock %} min-h-screen text-white p-4 md:p-8">
+    <a href="#main-content" class="skip-link">Перейти к содержимому</a>
+    <div class="max-w-7xl mx-auto">
+        <header class="mb-8 relative z-[120]" role="banner">
+            <div class="glass rounded-3xl p-5 md:p-6 relative z-[120] overflow-visible">
+                <div class="flex flex-col xl:flex-row xl:items-center xl:justify-between gap-4">
+                    <div>
+                        <div class="flex items-center gap-3 mb-1">
+                            <i data-lucide="wind" class="w-7 h-7 text-teal-200"></i>
+                            <a href="/" class="text-3xl font-bold tracking-tight hover:text-teal-100">AirTrace RU</a>
+                        </div>
+                        <p class="text-sm opacity-80">{% block location_display %}Выберите город для мониторинга качества воздуха{% endblock %}</p>
+                    </div>
+                    <div class="flex flex-col lg:flex-row gap-3 lg:items-center" aria-label="Navigation and controls">
+                        {% include 'custom_select.html' %}
+                        <nav class="flex flex-wrap gap-2">
+                            <a href="/compare?cities=moscow,spb" class="btn-glass rounded-xl px-4 py-2 text-sm">Сравнение</a>
+                            <a href="/alerts/settings" class="btn-glass rounded-xl px-4 py-2 text-sm">Уведомления</a>
+                            {% if current_city %}
+                                {% if is_custom %}
+                                    <a href="/history/custom?lat={{ current_city.lat }}&lon={{ current_city.lon }}&city_name={{ current_city.name | urlencode }}" class="btn-glass rounded-xl px-4 py-2 text-sm">История</a>
+                                    <a href="/trends/custom?lat={{ current_city.lat }}&lon={{ current_city.lon }}&city_name={{ current_city.name | urlencode }}" class="btn-glass rounded-xl px-4 py-2 text-sm">Тренды</a>
+                                {% else %}
+                                    <a href="/history/{{ city_key }}" class="btn-glass rounded-xl px-4 py-2 text-sm">История</a>
+                                    <a href="/trends/{{ city_key }}" class="btn-glass rounded-xl px-4 py-2 text-sm">Тренды</a>
+                                {% endif %}
+                            {% endif %}
+                        </nav>
+                        <div class="flex items-center gap-2 text-xs" aria-live="polite" aria-label="Backend API status">
+                            <span class="w-2.5 h-2.5 rounded-full {% if api_reachable is defined and not api_reachable %}bg-red-500{% elif api_status == 'healthy' %}bg-green-500{% elif api_status == 'unhealthy' %}bg-red-500{% else %}bg-yellow-400{% endif %}"></span>
+                            <span>{% if api_reachable is defined and not api_reachable %}API недоступен{% else %}API {{ translate_api_status(api_status) }}{% endif %}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <main id="main-content" role="main" tabindex="-1">
+            {% block content %}{% endblock %}
+        </main>
+
+        <footer class="mt-12 text-center text-xs opacity-60" role="contentinfo">
+            <p>&copy; 2026 AirTrace RU. Новое ядро, стабильная история, тренды и объяснимость.</p>
+        </footer>
+    </div>
+    <script>lucide.createIcons();</script>
+    {% block extra_scripts %}{% endblock %}
+</body>
+</html>
