@@ -6,8 +6,8 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 
-from connection_pool import APIResponse
-from weather_api_manager import WeatherAPIManager
+from infrastructure.integrations.connection_pool import APIResponse
+from infrastructure.integrations.weather_api_manager import WeatherAPIManager
 
 
 def _create_manager() -> WeatherAPIManager:
@@ -25,7 +25,7 @@ async def test_make_api_request_success_updates_counters_once():
         headers={},
         response_time=0.1,
     )
-    with patch("weather_api_manager.get_connection_pool_manager") as get_pool:
+    with patch("infrastructure.integrations.weather_api_manager.get_connection_pool_manager") as get_pool:
         get_pool.return_value.execute_request = AsyncMock(return_value=response)
         data = await manager._make_api_request("current", 55.7558, 37.6176)
 
@@ -44,7 +44,7 @@ async def test_make_api_request_non_200_counts_single_failure():
         headers={},
         response_time=0.1,
     )
-    with patch("weather_api_manager.get_connection_pool_manager") as get_pool:
+    with patch("infrastructure.integrations.weather_api_manager.get_connection_pool_manager") as get_pool:
         get_pool.return_value.execute_request = AsyncMock(return_value=response)
         with pytest.raises(Exception, match="Rate limit exceeded"):
             await manager._make_api_request("current", 55.7558, 37.6176)
@@ -57,7 +57,7 @@ async def test_make_api_request_non_200_counts_single_failure():
 @pytest.mark.asyncio
 async def test_make_api_request_transport_exception_counts_single_failure():
     manager = _create_manager()
-    with patch("weather_api_manager.get_connection_pool_manager") as get_pool:
+    with patch("infrastructure.integrations.weather_api_manager.get_connection_pool_manager") as get_pool:
         get_pool.return_value.execute_request = AsyncMock(side_effect=Exception("network down"))
         with pytest.raises(Exception, match="network down"):
             await manager._make_api_request("current", 55.7558, 37.6176)

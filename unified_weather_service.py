@@ -20,7 +20,7 @@ from schemas import (
     ResponseMetadata,
 )
 from services import AirQualityService
-from weather_api_manager import weather_api_manager
+from infrastructure.integrations.weather_api_manager import weather_api_manager
 from cache import MultiLevelCacheManager, CacheLevel
 from config import config
 from core.privacy_validation import validate_metrics_privacy

@@ -24,11 +24,11 @@ from dataclasses import dataclass
 # Core performance components
 from cache import MultiLevelCacheManager, CacheLevel
 from rate_limiter import RateLimiter
-from connection_pool import ConnectionPoolManager, ServiceType
+from infrastructure.integrations.connection_pool import ConnectionPoolManager, ServiceType
 from performance_monitor import PerformanceMonitor, setup_performance_monitoring
 from request_optimizer import RequestOptimizer, setup_request_optimization
 from resource_manager import ResourceManager, get_resource_manager
-from weather_api_manager import WeatherAPIManager
+from infrastructure.integrations.weather_api_manager import WeatherAPIManager
 from unified_weather_service import UnifiedWeatherService
 
 # Supporting components
@@ -233,7 +233,7 @@ class PerformanceIntegrationManager:
         
         # 1. WeatherAPI Manager
         try:
-            from weather_api_manager import weather_api_manager
+            from infrastructure.integrations.weather_api_manager import weather_api_manager
             self.weather_api_manager = weather_api_manager
             logger.info("✓ WeatherAPI manager initialized")
         except Exception as e:

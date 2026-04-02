@@ -24,11 +24,11 @@ from performance_integration import (
 )
 from cache import MultiLevelCacheManager, CacheLevel
 from rate_limiter import RateLimiter
-from connection_pool import ConnectionPoolManager, ServiceType, APIRequest
+from infrastructure.integrations.connection_pool import ConnectionPoolManager, ServiceType, APIRequest
 from performance_monitor import PerformanceMonitor
 from request_optimizer import RequestOptimizer
 from resource_manager import ResourceManager
-from weather_api_manager import WeatherAPIManager
+from infrastructure.integrations.weather_api_manager import WeatherAPIManager
 from unified_weather_service import UnifiedWeatherService
 from graceful_degradation import GracefulDegradationManager
 from config import config

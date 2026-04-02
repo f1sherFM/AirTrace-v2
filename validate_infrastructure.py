@@ -117,7 +117,7 @@ async def validate_connection_pools():
     logger.info("🔍 Validating connection pool system...")
     
     try:
-        from connection_pool import ConnectionPoolManager, ServiceType, APIRequest
+        from infrastructure.integrations.connection_pool import ConnectionPoolManager, ServiceType, APIRequest
         
         manager = ConnectionPoolManager()
         
@@ -159,7 +159,7 @@ async def validate_graceful_degradation():
         # Test that components can handle failures gracefully
         from cache import MultiLevelCacheManager
         from rate_limiter import RateLimiter
-        from connection_pool import ConnectionPoolManager
+        from infrastructure.integrations.connection_pool import ConnectionPoolManager
         
         # Test cache with Redis unavailable (should fall back to memory)
         cache_manager = MultiLevelCacheManager()
@@ -178,7 +178,7 @@ async def validate_graceful_degradation():
             logger.info("✅ Rate limiter fallback to memory working")
         
         # Test connection pool circuit breaker
-        from connection_pool import CircuitBreaker, CircuitBreakerState
+        from infrastructure.integrations.connection_pool import CircuitBreaker, CircuitBreakerState
         
         circuit_breaker = CircuitBreaker(failure_threshold=2, recovery_timeout=1)
         

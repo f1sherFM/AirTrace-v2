@@ -18,10 +18,10 @@ import httpx
 
 from main import app
 from unified_weather_service import unified_weather_service
-from weather_api_manager import weather_api_manager
+from infrastructure.integrations.weather_api_manager import weather_api_manager
 from schemas import AirQualityData, WeatherInfo, TemperatureData, WindData, PressureData
 from config import config
-from connection_pool import APIResponse
+from infrastructure.integrations.connection_pool import APIResponse
 
 
 class TestWeatherAPIIntegrationReliability:
@@ -44,7 +44,7 @@ class TestWeatherAPIIntegrationReliability:
         
         # Mock both the connection pool and the services directly
         with patch('services.AirQualityService.get_current_air_quality') as mock_air_quality:
-            with patch('weather_api_manager.weather_api_manager.get_combined_weather') as mock_weather:
+            with patch('infrastructure.integrations.weather_api_manager.weather_api_manager.get_combined_weather') as mock_weather:
                 with patch('unified_weather_service.unified_weather_service.cache_manager.get') as mock_cache_get:
                     with patch('unified_weather_service.unified_weather_service.cache_manager.set') as mock_cache_set:
                         
@@ -53,7 +53,7 @@ class TestWeatherAPIIntegrationReliability:
                         mock_cache_set.return_value = True
                         
                         # Mock WeatherAPI response
-                        from weather_api_manager import WeatherData, TemperatureData, WindData, PressureData
+                        from infrastructure.integrations.weather_api_manager import WeatherData, TemperatureData, WindData, PressureData
                         mock_weather_data = WeatherData(
                             temperature=TemperatureData(
                                 celsius=15.5,
@@ -152,7 +152,7 @@ class TestWeatherAPIIntegrationReliability:
         
         # Mock services directly to avoid connection pool issues
         with patch('services.AirQualityService.get_current_air_quality') as mock_air_quality:
-            with patch('weather_api_manager.weather_api_manager.get_combined_weather') as mock_weather:
+            with patch('infrastructure.integrations.weather_api_manager.weather_api_manager.get_combined_weather') as mock_weather:
                 with patch('unified_weather_service.unified_weather_service.cache_manager.get') as mock_cache_get:
                     with patch('unified_weather_service.unified_weather_service.cache_manager.set') as mock_cache_set:
                         
@@ -231,7 +231,7 @@ class TestWeatherAPIIntegrationReliability:
         for lat, lon in test_coordinates:
             # Mock services directly to avoid connection pool issues
             with patch('services.AirQualityService.get_current_air_quality') as mock_air_quality:
-                with patch('weather_api_manager.weather_api_manager.get_combined_weather') as mock_weather:
+            with patch('infrastructure.integrations.weather_api_manager.weather_api_manager.get_combined_weather') as mock_weather:
                     with patch('unified_weather_service.unified_weather_service.cache_manager.get') as mock_cache_get:
                         with patch('unified_weather_service.unified_weather_service.cache_manager.set') as mock_cache_set:
                             
@@ -240,7 +240,7 @@ class TestWeatherAPIIntegrationReliability:
                             mock_cache_set.return_value = True
                             
                             # Mock WeatherAPI response
-                            from weather_api_manager import WeatherData, TemperatureData, WindData, PressureData
+                        from infrastructure.integrations.weather_api_manager import WeatherData, TemperatureData, WindData, PressureData
                             mock_weather_data = WeatherData(
                                 temperature=TemperatureData(
                                     celsius=15.0,

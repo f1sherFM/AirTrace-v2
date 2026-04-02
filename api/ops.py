@@ -49,7 +49,7 @@ async def get_metrics():
 
         if config.performance.connection_pooling_enabled:
             try:
-                from connection_pool import get_connection_pool_manager
+                from infrastructure.integrations.connection_pool import get_connection_pool_manager
 
                 metrics["connection_pools"] = await get_connection_pool_manager().get_all_stats()
                 metrics["components"]["connection_pooling"] = "active"
@@ -118,7 +118,7 @@ async def get_comprehensive_metrics():
             comprehensive_metrics["rate_limiting"] = {"error": str(exc)}
 
         try:
-            from connection_pool import get_connection_pool_manager
+            from infrastructure.integrations.connection_pool import get_connection_pool_manager
 
             comprehensive_metrics["connection_pools"] = await get_connection_pool_manager().get_all_stats()
         except Exception as exc:
@@ -141,7 +141,7 @@ async def get_comprehensive_metrics():
             comprehensive_metrics["system"] = {"error": str(exc)}
 
         try:
-            from weather_api_manager import get_weather_api_manager
+            from infrastructure.integrations.weather_api_manager import get_weather_api_manager
 
             comprehensive_metrics["weatherapi"] = await get_weather_api_manager().get_api_status()
         except Exception as exc:

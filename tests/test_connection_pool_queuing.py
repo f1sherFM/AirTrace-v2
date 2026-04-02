@@ -1,4 +1,4 @@
-"""
+﻿"""
 Test connection pool queuing and circuit breaker functionality.
 
 Tests the enhanced connection pool implementation with request queuing,
@@ -11,7 +11,7 @@ import time
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, patch, MagicMock
 
-from connection_pool import (
+from infrastructure.integrations.connection_pool import (
     ConnectionPool, ConnectionPoolManager, PoolConfig, ServiceType,
     APIRequest, CircuitBreaker, CircuitBreakerState, ConnectionStatus
 )
@@ -106,7 +106,7 @@ class TestConnectionPoolQueuing:
             captured.update(kwargs)
             return mock_client
 
-        with patch("connection_pool.create_external_async_client", side_effect=_factory):
+        with patch("infrastructure.integrations.connection_pool.create_external_async_client", side_effect=_factory):
             pool = ConnectionPool(ServiceType.OPEN_METEO, "https://test.api", pool_config)
 
         assert pool.client is mock_client
@@ -119,7 +119,7 @@ class TestConnectionPoolQueuing:
     @pytest.mark.asyncio
     async def test_request_queuing_when_pool_exhausted(self, pool_config, mock_client):
         """Test that requests are queued when connection pool is exhausted"""
-        with patch('connection_pool.create_external_async_client', return_value=mock_client):
+        with patch('infrastructure.integrations.connection_pool.create_external_async_client', return_value=mock_client):
             pool = ConnectionPool(ServiceType.OPEN_METEO, "https://test.api", pool_config)
             
             # Create multiple concurrent requests that exceed pool capacity
@@ -164,7 +164,7 @@ class TestConnectionPoolQueuing:
         
         mock_client.request.side_effect = slow_request
         
-        with patch('connection_pool.create_external_async_client', return_value=mock_client):
+        with patch('infrastructure.integrations.connection_pool.create_external_async_client', return_value=mock_client):
             pool = ConnectionPool(ServiceType.OPEN_METEO, "https://test.api", pool_config)
             
             # Create requests that will cause queuing
@@ -202,7 +202,7 @@ class TestConnectionPoolQueuing:
         
         mock_client.request.side_effect = slow_request
         
-        with patch('connection_pool.create_external_async_client', return_value=mock_client):
+        with patch('infrastructure.integrations.connection_pool.create_external_async_client', return_value=mock_client):
             pool = ConnectionPool(ServiceType.OPEN_METEO, "https://test.api", pool_config)
             
             # Create more requests than queue can handle
@@ -234,7 +234,7 @@ class TestConnectionPoolMetrics:
     @pytest.mark.asyncio
     async def test_comprehensive_metrics_collection(self, pool_config):
         """Test that all metrics are properly collected"""
-        with patch('connection_pool.create_external_async_client') as mock_client_class:
+        with patch('infrastructure.integrations.connection_pool.create_external_async_client') as mock_client_class:
             mock_client = AsyncMock()
             mock_client_class.return_value = mock_client
             
@@ -276,7 +276,7 @@ class TestConnectionPoolMetrics:
     @pytest.mark.asyncio
     async def test_wait_time_metrics(self, pool_config):
         """Test wait time metrics collection"""
-        with patch('connection_pool.create_external_async_client') as mock_client_class:
+        with patch('infrastructure.integrations.connection_pool.create_external_async_client') as mock_client_class:
             mock_client = AsyncMock()
             mock_client_class.return_value = mock_client
             
@@ -318,8 +318,8 @@ class TestConnectionPoolIntegration:
     async def test_circuit_breaker_prevents_queuing(self):
         """Test that open circuit breaker prevents request queuing"""
         config = PoolConfig(max_connections=1, queue_timeout=0.5, max_retries=0)  # No retries to fail faster
-        
-        with patch('connection_pool.create_external_async_client') as mock_client_class:
+
+        with patch('infrastructure.integrations.connection_pool.create_external_async_client') as mock_client_class:
             mock_client = AsyncMock()
             mock_client_class.return_value = mock_client
             
@@ -352,3 +352,5 @@ class TestConnectionPoolIntegration:
 
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])
+
+

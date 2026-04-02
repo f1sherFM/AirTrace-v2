@@ -200,11 +200,11 @@ class TestPrivacyCompliancePreservation:
         
         for lat, lon in test_coordinates:
             # Mock external APIs to avoid actual network calls
-            with patch('connection_pool.get_connection_pool_manager') as mock_pool_manager:
+    with patch('infrastructure.integrations.connection_pool.get_connection_pool_manager') as mock_pool_manager:
                 mock_manager = MagicMock()
                 mock_pool_manager.return_value = mock_manager
                 
-                from connection_pool import APIResponse
+    from infrastructure.integrations.connection_pool import APIResponse
                 
                 async def mock_execute_request(service_type, request):
                     return APIResponse(

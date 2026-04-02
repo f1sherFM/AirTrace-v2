@@ -273,7 +273,7 @@ async def lifespan(app: FastAPI):
 
         if config.performance.connection_pooling_enabled:
             try:
-                from connection_pool import get_connection_pool_manager
+                from infrastructure.integrations.connection_pool import get_connection_pool_manager
 
                 await get_connection_pool_manager().cleanup()
             except Exception as exc:

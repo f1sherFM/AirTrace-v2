@@ -31,8 +31,8 @@ from schemas import (
 from domain.aqi.calculator import AQICalculator
 from domain.nmu.detector import check_nmu_risk, get_nmu_recommendations, is_blacksky_conditions
 from cache import MultiLevelCacheManager
-from connection_pool import get_connection_pool_manager, ServiceType, APIRequest
-from weather_api_manager import weather_api_manager
+from infrastructure.integrations.connection_pool import get_connection_pool_manager, ServiceType, APIRequest
+from infrastructure.integrations.weather_api_manager import weather_api_manager
 from config import config
 from confidence_scoring import ConfidenceInputs, calculate_confidence
 from http_transport import create_external_async_client

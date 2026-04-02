@@ -5,7 +5,7 @@ from __future__ import annotations
 import sys
 from typing import Any, Callable
 
-from connection_pool import get_connection_pool_manager as default_get_connection_pool_manager
+from infrastructure.integrations.connection_pool import get_connection_pool_manager as default_get_connection_pool_manager
 
 
 _RUNTIME_DEFAULTS: dict[str, Any] = {

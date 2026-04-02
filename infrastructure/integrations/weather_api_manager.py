@@ -12,7 +12,12 @@ from datetime import datetime, timezone
 from typing import Dict, Any, List, Optional, Union
 import json
 
-from connection_pool import get_connection_pool_manager, ServiceType, APIRequest, APIResponse
+from infrastructure.integrations.connection_pool import (
+    APIRequest,
+    APIResponse,
+    ServiceType,
+    get_connection_pool_manager,
+)
 from config import config
 
 logger = logging.getLogger(__name__)

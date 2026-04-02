@@ -25,7 +25,7 @@ from application.queries.health import (
 )
 from application.services.alerts import AlertSubscriptionService
 from config import config  # re-export for compatibility
-from connection_pool import get_connection_pool_manager
+from infrastructure.integrations.connection_pool import get_connection_pool_manager
 from core.app_factory import create_api_app
 from history_ingestion import HistoryIngestionPipeline, InMemoryHistoricalSnapshotStore
 from infrastructure.repositories import (

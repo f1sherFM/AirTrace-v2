@@ -929,7 +929,7 @@ class DynamicResourceScaler:
         
         # Get connection pool metrics
         try:
-            from connection_pool import get_connection_pool_manager
+            from infrastructure.integrations.connection_pool import get_connection_pool_manager
             pool_manager = get_connection_pool_manager()
             pool_stats = await pool_manager.get_all_stats()
             

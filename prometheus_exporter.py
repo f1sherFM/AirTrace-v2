@@ -262,7 +262,7 @@ class PrometheusExporter:
             
             # Connection pool metrics
             try:
-                from connection_pool import get_connection_pool_manager
+            from infrastructure.integrations.connection_pool import get_connection_pool_manager
                 pool_manager = get_connection_pool_manager()
                 pool_stats = await pool_manager.get_all_stats()
                 
@@ -321,7 +321,7 @@ class PrometheusExporter:
             
             # WeatherAPI integration metrics
             try:
-                from weather_api_manager import get_weather_api_manager
+            from infrastructure.integrations.weather_api_manager import get_weather_api_manager
                 weather_api_manager = get_weather_api_manager()
                 api_stats = await weather_api_manager.get_api_status()
                 

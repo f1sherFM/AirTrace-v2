@@ -14,9 +14,15 @@ from unittest.mock import patch, MagicMock, AsyncMock
 import httpx
 
 from unified_weather_service import UnifiedWeatherService
-from weather_api_manager import WeatherAPIManager, WeatherData, TemperatureData, WindData, PressureData
+from infrastructure.integrations.weather_api_manager import (
+    PressureData,
+    TemperatureData,
+    WeatherAPIManager,
+    WeatherData,
+    WindData,
+)
 from services import AirQualityService
-from connection_pool import ConnectionPoolManager, ServiceType, APIRequest, APIResponse
+from infrastructure.integrations.connection_pool import ConnectionPoolManager, ServiceType, APIRequest, APIResponse
 from schemas import AirQualityData, LocationInfo, AQIInfo, PollutantData, WeatherInfo
 from config import config
 
