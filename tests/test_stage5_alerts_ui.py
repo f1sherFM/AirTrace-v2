@@ -72,6 +72,9 @@ async def test_stage5_alerts_page_renders_subscription_status_fields():
     assert response.status_code == 200
     html = response.text
     assert "Telegram chat_id" in html
+    assert "AQI = 0" in html
+    assert "Cooldown" in html
+    assert "Отправить тест" in html
     assert "Последняя доставка" in html
     assert "Последнее срабатывание" in html
 
@@ -136,4 +139,74 @@ async def test_stage5_alerts_ui_create_edit_delete_flow():
     assert create_resp.status_code == 303
     assert update_resp.status_code == 303
     assert delete_resp.status_code == 303
+    assert "status=success" in create_resp.headers["location"]
+    assert "status=success" in update_resp.headers["location"]
+    assert "status=success" in delete_resp.headers["location"]
     assert calls == {"create": 1, "update": 1, "delete": 1}
+
+
+@pytest.mark.asyncio
+async def test_stage5_alerts_page_renders_flash_message_from_query_params():
+    original = web_app.air_service.list_alert_rules
+
+    async def _fake_list():
+        return []
+
+    web_app.air_service.list_alert_rules = _fake_list
+    try:
+        transport = httpx.ASGITransport(app=web_app.app)
+        async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
+            response = await client.get("/alerts/settings?status=success&message=%D0%9F%D0%BE%D0%B4%D0%BF%D0%B8%D1%81%D0%BA%D0%B0%20%D1%81%D0%BE%D1%85%D1%80%D0%B0%D0%BD%D0%B5%D0%BD%D0%B0.")
+    finally:
+        web_app.air_service.list_alert_rules = original
+
+    assert response.status_code == 200
+    assert "Подписка сохранена." in response.text
+
+
+@pytest.mark.asyncio
+async def test_stage5_alerts_ui_redirects_with_error_message_when_create_fails():
+    original_create = web_app.air_service.create_alert_rule
+
+    async def _fake_create(payload):
+        raise RuntimeError("boom")
+
+    web_app.air_service.create_alert_rule = _fake_create
+    try:
+        transport = httpx.ASGITransport(app=web_app.app)
+        async with httpx.AsyncClient(transport=transport, base_url="http://test", follow_redirects=False) as client:
+            create_resp = await client.post(
+                "/alerts/settings/create",
+                data={
+                    "name": "Broken alert",
+                    "aqi_threshold": "10",
+                    "cooldown_minutes": "30",
+                    "channel": "telegram",
+                    "chat_id": "777",
+                    "enabled": "on",
+                },
+            )
+    finally:
+        web_app.air_service.create_alert_rule = original_create
+
+    assert create_resp.status_code == 303
+    assert "status=error" in create_resp.headers["location"]
+
+
+@pytest.mark.asyncio
+async def test_stage5_alerts_ui_test_delivery_redirects_with_success_message():
+    original_send_test = web_app.air_service.send_test_alert
+
+    async def _fake_send_test(rule_id):
+        return [{"status": "sent", "attempts": 1, "channel": "telegram"}]
+
+    web_app.air_service.send_test_alert = _fake_send_test
+    try:
+        transport = httpx.ASGITransport(app=web_app.app)
+        async with httpx.AsyncClient(transport=transport, base_url="http://test", follow_redirects=False) as client:
+            response = await client.post("/alerts/settings/test/sub-1")
+    finally:
+        web_app.air_service.send_test_alert = original_send_test
+
+    assert response.status_code == 303
+    assert "status=success" in response.headers["location"]

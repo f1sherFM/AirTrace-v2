@@ -100,7 +100,7 @@ def _derive_overall_health_status(normalized_services: dict[str, dict[str, Any]]
         return "unhealthy"
     if any(status == "degraded" for status in critical_statuses):
         return "degraded"
-    if any(status in {"unhealthy", "degraded"} for status in optional_statuses):
+    if any(status == "unhealthy" for status in optional_statuses):
         return "degraded"
     return "healthy"
 

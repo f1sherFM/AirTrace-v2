@@ -334,15 +334,40 @@ async def build_compare_page_context(
     }
 
 
-async def build_alerts_page_context(*, request: Any, service: WebAppService) -> dict[str, Any]:
+async def build_alerts_page_context(
+    *,
+    request: Any,
+    service: WebAppService,
+    flash_status: Optional[str] = None,
+    flash_message: Optional[str] = None,
+) -> dict[str, Any]:
     subscriptions, health_context = await asyncio.gather(
         service.list_alert_rules(),
         _health_context(service),
     )
+    flash = None
+    if flash_status and flash_message:
+        flash = {"status": flash_status, "message": flash_message}
+    helper_cards = [
+        {
+            "title": "AQI = 0 для smoke test",
+            "body": "Порог AQI = 0 удобен для первичной проверки доставки. Потом верни рабочий порог, чтобы не получать лишние уведомления.",
+        },
+        {
+            "title": "Cooldown не равен расписанию",
+            "body": "Cooldown задаёт минимальный интервал между повторными отправками. Он не означает, что сообщение будет приходить каждые N минут.",
+        },
+        {
+            "title": "Как получить chat_id",
+            "body": "Сначала напиши боту в Telegram, затем используй свой chat_id в поле chat_id. Без этого уведомление некуда доставлять.",
+        },
+    ]
     return {
         "request": request,
         "cities": get_cities_mapping(),
         "rules": subscriptions,
+        "flash": flash,
+        "helper_cards": helper_cards,
         **health_context,
         "title": "AirTrace RU - Подписки на уведомления",
     }

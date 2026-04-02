@@ -4,6 +4,7 @@ import httpx
 import pytest
 
 import main
+from application.queries.health import _derive_overall_health_status
 from tests.test_stage5_ssr_rendering import web_app
 
 
@@ -43,3 +44,19 @@ async def test_ssr_api_health_endpoint_prefers_public_status_for_user_facing_sta
     assert payload["status"] == "healthy"
     assert payload["public_status"] == "healthy"
     assert payload["backend_api"] == "degraded"
+
+
+def test_overall_health_treats_optional_degraded_components_as_noise_when_core_is_healthy():
+    normalized_services = {
+        "api": {"status": "healthy", "details": {}},
+        "external_api": {"status": "healthy", "details": {}},
+        "aqi_calculator": {"status": "healthy", "details": {}},
+        "nmu_detector": {"status": "healthy", "details": {}},
+        "privacy_middleware": {"status": "healthy", "details": {}},
+        "graceful_degradation": {"status": "healthy", "details": {}},
+        "cache": {"status": "degraded", "details": {}},
+        "rate_limiting": {"status": "degraded", "details": {}},
+        "weather_api": {"status": "degraded", "details": {}},
+    }
+
+    assert _derive_overall_health_status(normalized_services) == "healthy"

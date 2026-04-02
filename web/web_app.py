@@ -11,6 +11,7 @@ from contextlib import asynccontextmanager
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Optional
+from urllib.parse import urlencode
 
 import uvicorn
 from fastapi import FastAPI, Form, HTTPException, Query, Request
@@ -351,7 +352,12 @@ async def compare_cities_page(request: Request, cities: str = Query("moscow,spb"
 
 @app.get("/alerts/settings", response_class=UTF8HTMLResponse)
 async def alert_settings_page(request: Request):
-    context = await build_alerts_page_context(request=request, service=air_service)
+    context = await build_alerts_page_context(
+        request=request,
+        service=air_service,
+        flash_status=request.query_params.get("status"),
+        flash_message=request.query_params.get("message"),
+    )
     return templates.TemplateResponse(request, "alerts.html", context)
 
 
@@ -389,22 +395,29 @@ async def alert_settings_create(
     channel: str = Form("telegram"),
     chat_id: Optional[str] = Form(None),
 ):
-    payload = _build_alert_payload(
-        name=name,
-        enabled=enabled,
-        aqi_threshold=aqi_threshold,
-        nmu_levels=nmu_levels,
-        cooldown_minutes=cooldown_minutes,
-        quiet_hours_start=quiet_hours_start,
-        quiet_hours_end=quiet_hours_end,
-        channel=channel,
-        chat_id=chat_id,
-        city=city,
-        lat=lat,
-        lon=lon,
-    )
-    await air_service.create_alert_rule(payload)
-    return RedirectResponse(url="/alerts/settings", status_code=303)
+    try:
+        payload = _build_alert_payload(
+            name=name,
+            enabled=enabled,
+            aqi_threshold=aqi_threshold,
+            nmu_levels=nmu_levels,
+            cooldown_minutes=cooldown_minutes,
+            quiet_hours_start=quiet_hours_start,
+            quiet_hours_end=quiet_hours_end,
+            channel=channel,
+            chat_id=chat_id,
+            city=city,
+            lat=lat,
+            lon=lon,
+        )
+        await air_service.create_alert_rule(payload)
+        query = urlencode({"status": "success", "message": "Подписка сохранена."})
+    except HTTPException as exc:
+        query = urlencode({"status": "error", "message": str(exc.detail)})
+    except Exception:
+        logger.exception("Failed to create alert rule from SSR UI")
+        query = urlencode({"status": "error", "message": "Не удалось создать подписку."})
+    return RedirectResponse(url=f"/alerts/settings?{query}", status_code=303)
 
 
 @app.post("/alerts/settings/update/{rule_id}")
@@ -423,28 +436,71 @@ async def alert_settings_update(
     channel: str = Form("telegram"),
     chat_id: Optional[str] = Form(None),
 ):
-    payload = _build_alert_payload(
-        name=name,
-        enabled=enabled,
-        aqi_threshold=aqi_threshold,
-        nmu_levels=nmu_levels,
-        cooldown_minutes=cooldown_minutes,
-        quiet_hours_start=quiet_hours_start,
-        quiet_hours_end=quiet_hours_end,
-        channel=channel,
-        chat_id=chat_id,
-        city=city,
-        lat=lat,
-        lon=lon,
-    )
-    await air_service.update_alert_rule(rule_id, payload)
-    return RedirectResponse(url="/alerts/settings", status_code=303)
+    try:
+        payload = _build_alert_payload(
+            name=name,
+            enabled=enabled,
+            aqi_threshold=aqi_threshold,
+            nmu_levels=nmu_levels,
+            cooldown_minutes=cooldown_minutes,
+            quiet_hours_start=quiet_hours_start,
+            quiet_hours_end=quiet_hours_end,
+            channel=channel,
+            chat_id=chat_id,
+            city=city,
+            lat=lat,
+            lon=lon,
+        )
+        await air_service.update_alert_rule(rule_id, payload)
+        query = urlencode({"status": "success", "message": "Подписка обновлена."})
+    except HTTPException as exc:
+        query = urlencode({"status": "error", "message": str(exc.detail)})
+    except Exception:
+        logger.exception("Failed to update alert rule from SSR UI")
+        query = urlencode({"status": "error", "message": "Не удалось обновить подписку."})
+    return RedirectResponse(url=f"/alerts/settings?{query}", status_code=303)
 
 
 @app.post("/alerts/settings/delete/{rule_id}")
 async def alert_settings_delete(rule_id: str):
-    await air_service.delete_alert_rule(rule_id)
-    return RedirectResponse(url="/alerts/settings", status_code=303)
+    try:
+        await air_service.delete_alert_rule(rule_id)
+        query = urlencode({"status": "success", "message": "Подписка удалена."})
+    except HTTPException as exc:
+        query = urlencode({"status": "error", "message": str(exc.detail)})
+    except Exception:
+        logger.exception("Failed to delete alert rule from SSR UI")
+        query = urlencode({"status": "error", "message": "Не удалось удалить подписку."})
+    return RedirectResponse(url=f"/alerts/settings?{query}", status_code=303)
+
+
+@app.post("/alerts/settings/test/{rule_id}")
+async def alert_settings_test_delivery(rule_id: str):
+    try:
+        results = await air_service.send_test_alert(rule_id)
+        if not results:
+            query = urlencode(
+                {
+                    "status": "error",
+                    "message": "Тест выполнен, но активных событий для отправки нет. Для smoke test можно временно поставить AQI = 0.",
+                }
+            )
+        else:
+            first = results[0]
+            status = first.get("status", "unknown") if isinstance(first, dict) else getattr(first, "status", "unknown")
+            attempts = first.get("attempts", 0) if isinstance(first, dict) else getattr(first, "attempts", 0)
+            query = urlencode(
+                {
+                    "status": "success" if status == "sent" else "error",
+                    "message": f"Тестовая отправка завершена: status={status}, attempts={attempts}.",
+                }
+            )
+    except HTTPException as exc:
+        query = urlencode({"status": "error", "message": str(exc.detail)})
+    except Exception:
+        logger.exception("Failed to send test alert from SSR UI")
+        query = urlencode({"status": "error", "message": "Не удалось выполнить тестовую отправку."})
+    return RedirectResponse(url=f"/alerts/settings?{query}", status_code=303)
 
 
 @app.get("/api/health")

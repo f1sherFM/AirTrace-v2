@@ -4,6 +4,14 @@
 {% block location_display %}Подписки на уведомления{% endblock %}
 
 {% block content %}
+{% if flash %}
+<section class="mb-6">
+    <div class="rounded-3xl px-4 py-3 border {% if flash.status == 'success' %}bg-emerald-500/15 border-emerald-400/40 text-emerald-50{% else %}bg-red-500/15 border-red-400/40 text-red-50{% endif %}">
+        <div class="text-sm font-medium">{{ flash.message }}</div>
+    </div>
+</section>
+{% endif %}
+
 <section class="grid grid-cols-1 xl:grid-cols-3 gap-6">
     <div class="glass rounded-3xl p-6">
         <h2 class="text-xl font-semibold mb-4">Создать подписку</h2>
@@ -22,12 +30,14 @@
             <input name="aqi_threshold" type="number" min="0" max="500" placeholder="Порог AQI" class="w-full px-3 py-2 rounded-xl bg-white/10 border border-white/20">
             <input name="nmu_levels" placeholder="Уровни НМУ: high,critical" class="w-full px-3 py-2 rounded-xl bg-white/10 border border-white/20">
             <input name="cooldown_minutes" type="number" min="1" max="1440" value="60" class="w-full px-3 py-2 rounded-xl bg-white/10 border border-white/20">
+            <p class="text-xs opacity-70">Cooldown задаёт минимальный интервал между повторными сообщениями. Это не расписание отправки.</p>
             <div class="grid grid-cols-2 gap-2">
                 <input name="quiet_hours_start" type="number" min="0" max="23" placeholder="Тихий час: с" class="w-full px-3 py-2 rounded-xl bg-white/10 border border-white/20">
                 <input name="quiet_hours_end" type="number" min="0" max="23" placeholder="Тихий час: до" class="w-full px-3 py-2 rounded-xl bg-white/10 border border-white/20">
             </div>
             <input name="channel" value="telegram" class="w-full px-3 py-2 rounded-xl bg-white/10 border border-white/20">
             <input name="chat_id" placeholder="Telegram chat_id" class="w-full px-3 py-2 rounded-xl bg-white/10 border border-white/20">
+            <p class="text-xs opacity-70">Для smoke test можно поставить AQI = 0. В поле chat_id используй свой Telegram chat_id после первого сообщения боту.</p>
             <label class="flex items-center gap-2 text-sm"><input type="checkbox" name="enabled" checked> Активна</label>
             <button type="submit" class="btn-glass w-full rounded-xl px-4 py-2">Создать</button>
         </form>
@@ -69,6 +79,7 @@
                     <div class="flex items-center justify-between gap-3">
                         <label class="flex items-center gap-2 text-sm"><input type="checkbox" name="enabled" {% if rule.enabled %}checked{% endif %}> Активна</label>
                         <div class="flex gap-2">
+                            <button formaction="/alerts/settings/test/{{ rule.id }}" formmethod="post" type="submit" class="rounded-xl px-4 py-2 text-sm bg-blue-500/20 border border-blue-500/40">Отправить тест</button>
                             <button type="submit" class="btn-glass rounded-xl px-4 py-2 text-sm">Сохранить</button>
                         </div>
                     </div>
@@ -83,6 +94,15 @@
         <div class="text-sm opacity-70">Подписок пока нет.</div>
         {% endif %}
     </div>
+</section>
+
+<section class="mt-6 grid grid-cols-1 lg:grid-cols-3 gap-4">
+    {% for helper in helper_cards %}
+    <div class="panel rounded-3xl p-4">
+        <h3 class="text-sm font-semibold mb-2">{{ helper.title }}</h3>
+        <p class="text-sm opacity-75">{{ helper.body }}</p>
+    </div>
+    {% endfor %}
 </section>
 
 <section class="mt-6 glass rounded-3xl p-6">

@@ -17,6 +17,7 @@ from application.queries.readonly import (
 )
 from application.queries.v2_readonly import query_trends_v2
 from application.services.alerts import AlertSubscriptionService
+from core.settings import get_cities_mapping
 from core.legacy_runtime import (
     get_alert_subscription_service,
     get_history_snapshot_store,
@@ -196,6 +197,7 @@ class WebAppService:
         path: str,
         *,
         json_body: Optional[dict[str, Any]] = None,
+        params: Optional[dict[str, Any]] = None,
     ) -> Any:
         async with create_internal_async_client(
             base_url=self._alerts_api_base_url,
@@ -211,6 +213,7 @@ class WebAppService:
                     path,
                     headers=self._alerts_api_headers(),
                     json=json_body,
+                    params=params,
                 )
             except httpx.RequestError as exc:
                 raise HTTPException(status_code=503, detail=str(exc) or "Alert backend is unreachable") from exc
@@ -270,6 +273,58 @@ class WebAppService:
         if not deleted:
             raise HTTPException(status_code=404, detail="Alert subscription not found")
         return {"deleted": True, "rule_id": rule_id}
+
+    async def get_alert_rule(self, rule_id: str) -> dict[str, Any]:
+        if self._use_backend_alerts_api():
+            payload = await self._request_alerts_api("GET", f"/v2/alerts/{rule_id}")
+            return dict(payload)
+        for item in await self.list_alert_rules():
+            if item.get("id") == rule_id:
+                return item
+        raise HTTPException(status_code=404, detail="Alert subscription not found")
+
+    async def send_test_alert(self, rule_id: str) -> list[dict[str, Any]]:
+        rule = await self.get_alert_rule(rule_id)
+        chat_id = rule.get("chat_id")
+        if not chat_id:
+            raise HTTPException(status_code=400, detail="У подписки не указан chat_id.")
+
+        lat = rule.get("lat")
+        lon = rule.get("lon")
+        if lat is None or lon is None:
+            city_key = rule.get("city")
+            city_payload = get_cities_mapping().get(city_key or "")
+            if city_payload is None:
+                raise HTTPException(status_code=400, detail="Для тестовой отправки не удалось определить координаты подписки.")
+            lat = float(city_payload["lat"])
+            lon = float(city_payload["lon"])
+
+        if self._use_backend_alerts_api():
+            payload = await self._request_alerts_api(
+                "GET",
+                "/alerts/check-current-and-deliver",
+                params={"lat": lat, "lon": lon, "chat_id": chat_id},
+            )
+            return list(payload or [])
+
+        current = await query_current_air_quality(lat=float(lat), lon=float(lon))
+        service = self._get_or_create_alert_service()
+        events = await service.evaluate_conditions(
+            aqi=current.aqi.value,
+            nmu_risk=current.nmu_risk,
+            lat=float(lat),
+            lon=float(lon),
+            city_code=rule.get("city"),
+        )
+        if not events:
+            return []
+        results = await service.deliver_events(
+            events=events,
+            aqi=current.aqi.value,
+            nmu_risk=current.nmu_risk,
+            chat_id_override=chat_id,
+        )
+        return results
 
     async def get_daily_digest(
         self,
