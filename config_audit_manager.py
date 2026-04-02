@@ -136,7 +136,7 @@ class ConfigurationAuditManager:
         
         # Performance monitor integration
         try:
-            from performance_monitor import get_performance_monitor
+            from infrastructure.observability.performance_monitor import get_performance_monitor
             self.performance_monitor = get_performance_monitor()
         except Exception as e:
             logger.warning(f"Failed to initialize performance monitor: {e}")

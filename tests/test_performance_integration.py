@@ -15,7 +15,7 @@ from typing import Dict, Any, List
 from unittest.mock import AsyncMock, MagicMock, patch
 import httpx
 
-from performance_integration import (
+from infrastructure.observability.performance_integration import (
     PerformanceIntegrationManager, 
     initialize_performance_system,
     shutdown_performance_system,
@@ -25,7 +25,7 @@ from performance_integration import (
 from cache import MultiLevelCacheManager, CacheLevel
 from rate_limiter import RateLimiter
 from infrastructure.integrations.connection_pool import ConnectionPoolManager, ServiceType, APIRequest
-from performance_monitor import PerformanceMonitor
+from infrastructure.observability.performance_monitor import PerformanceMonitor
 from request_optimizer import RequestOptimizer
 from resource_manager import ResourceManager
 from infrastructure.integrations.weather_api_manager import WeatherAPIManager

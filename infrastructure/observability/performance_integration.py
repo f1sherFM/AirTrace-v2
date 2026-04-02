@@ -25,7 +25,10 @@ from dataclasses import dataclass
 from cache import MultiLevelCacheManager, CacheLevel
 from rate_limiter import RateLimiter
 from infrastructure.integrations.connection_pool import ConnectionPoolManager, ServiceType
-from performance_monitor import PerformanceMonitor, setup_performance_monitoring
+from infrastructure.observability.performance_monitor import (
+    PerformanceMonitor,
+    setup_performance_monitoring,
+)
 from request_optimizer import RequestOptimizer, setup_request_optimization
 from resource_manager import ResourceManager, get_resource_manager
 from infrastructure.integrations.weather_api_manager import WeatherAPIManager
@@ -33,7 +36,10 @@ from unified_weather_service import UnifiedWeatherService
 
 # Supporting components
 from graceful_degradation import GracefulDegradationManager, get_graceful_degradation_manager
-from prometheus_exporter import PrometheusExporter, setup_prometheus_exporter
+from infrastructure.observability.prometheus_exporter import (
+    PrometheusExporter,
+    setup_prometheus_exporter,
+)
 from system_monitor import SystemResourceMonitor, get_system_monitor
 from config import config
 

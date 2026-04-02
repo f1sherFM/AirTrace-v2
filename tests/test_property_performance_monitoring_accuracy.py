@@ -16,7 +16,7 @@ from datetime import datetime, timezone, timedelta
 from typing import Dict, Any, List
 import statistics
 
-from performance_monitor import (
+from infrastructure.observability.performance_monitor import (
     PerformanceMonitor, 
     RequestMetrics, 
     CacheMetrics, 

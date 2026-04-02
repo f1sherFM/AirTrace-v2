@@ -28,7 +28,7 @@ from resource_circuit_breaker import (
 )
 
 # Import dynamic scaling components
-from resource_scaling import (
+from infrastructure.observability.resource_scaling import (
     DynamicResourceScaler, ScalingConfig, AdvancedResourcePool, PoolingStrategy,
     PerformanceProfiler, get_dynamic_scaler, get_performance_profiler,
     create_advanced_pool

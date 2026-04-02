@@ -67,7 +67,7 @@ async def get_metrics():
 @router.get("/metrics/prometheus", include_in_schema=False, response_class=PlainTextResponse)
 async def get_prometheus_metrics():
     try:
-        from prometheus_exporter import get_prometheus_exporter
+        from infrastructure.observability.prometheus_exporter import get_prometheus_exporter
 
         return await get_prometheus_exporter().export_metrics()
     except Exception as exc:
@@ -78,7 +78,7 @@ async def get_prometheus_metrics():
 @router.get("/metrics/validate", include_in_schema=False)
 async def validate_prometheus_metrics():
     try:
-        from prometheus_exporter import get_prometheus_exporter
+        from infrastructure.observability.prometheus_exporter import get_prometheus_exporter
 
         return await get_prometheus_exporter().validate_metrics_completeness()
     except Exception as exc:
@@ -92,7 +92,7 @@ async def get_comprehensive_metrics():
         comprehensive_metrics = {}
 
         try:
-            from performance_monitor import get_performance_monitor
+            from infrastructure.observability.performance_monitor import get_performance_monitor
 
             monitor = get_performance_monitor()
             comprehensive_metrics["performance"] = {
@@ -155,7 +155,7 @@ async def get_comprehensive_metrics():
             comprehensive_metrics["request_optimization"] = {"error": str(exc)}
 
         try:
-            from prometheus_exporter import get_prometheus_exporter
+            from infrastructure.observability.prometheus_exporter import get_prometheus_exporter
 
             exporter = get_prometheus_exporter()
             comprehensive_metrics["alerts"] = {
@@ -198,7 +198,7 @@ async def get_privacy_compliance_status():
 
         if config.performance.monitoring_enabled:
             try:
-                from performance_monitor import PerformanceMonitor
+                from infrastructure.observability.performance_monitor import PerformanceMonitor
 
                 monitor = PerformanceMonitor()
                 privacy_validator.validate_performance_monitoring_privacy(

@@ -917,7 +917,7 @@ class DynamicResourceScaler:
         
         # Get performance metrics
         try:
-            from performance_monitor import get_performance_monitor
+            from infrastructure.observability.performance_monitor import get_performance_monitor
             perf_monitor = get_performance_monitor()
             perf_stats = perf_monitor.get_performance_stats()
             
