@@ -121,7 +121,7 @@ async def test_web_alerts_service_reads_api_base_url_lazily_from_environment(mon
         async def __aexit__(self, exc_type, exc, tb):
             return None
 
-        async def request(self, method, path, headers=None, json=None):
+        async def request(self, method, path, headers=None, json=None, params=None):
             captured["method"] = method
             captured["path"] = path
             return SimpleNamespace(is_success=True, status_code=200, content=b"[]", json=lambda: [])
@@ -157,7 +157,7 @@ async def test_web_alerts_service_builds_internal_http_client():
         async def __aexit__(self, exc_type, exc, tb):
             return None
 
-        async def request(self, method, path, headers=None, json=None):
+        async def request(self, method, path, headers=None, json=None, params=None):
             captured["method"] = method
             captured["path"] = path
             captured["headers"] = headers
@@ -184,3 +184,47 @@ async def test_web_alerts_service_builds_internal_http_client():
     assert captured["factory_kwargs"]["trust_env"] is False
     assert captured["method"] == "GET"
     assert captured["path"] == "/v2/alerts"
+
+
+@pytest.mark.asyncio
+async def test_web_service_uses_backend_api_for_current_readonly_payload():
+    captured: dict[str, object] = {}
+
+    class _Client:
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, exc_type, exc, tb):
+            return None
+
+        async def request(self, method, path, headers=None, json=None, params=None):
+            captured["method"] = method
+            captured["path"] = path
+            captured["headers"] = headers
+            captured["params"] = params
+            return SimpleNamespace(
+                is_success=True,
+                status_code=200,
+                content=b'{"aqi":{"value":53},"location":{"latitude":61.254,"longitude":73.3962}}',
+                json=lambda: {"aqi": {"value": 53}, "location": {"latitude": 61.254, "longitude": 73.3962}},
+            )
+
+    def _factory(**kwargs):
+        captured["factory_kwargs"] = kwargs
+        return _Client()
+
+    service = WebAppService(
+        alerts_api_base_url="http://testserver",
+        alerts_api_timeout_seconds=8.0,
+        alerts_api_trust_env=False,
+    )
+
+    with patch("application.web.service.create_internal_async_client", side_effect=_factory):
+        payload = await service.get_current_data(61.2540, 73.3962)
+
+    assert payload["aqi"]["value"] == 53
+    assert captured["factory_kwargs"]["base_url"] == "http://testserver"
+    assert captured["method"] == "GET"
+    assert captured["path"] == "/v2/current"
+    assert captured["params"] == {"lat": 61.254, "lon": 73.3962}
+    assert captured["headers"] is None

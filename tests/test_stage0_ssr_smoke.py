@@ -63,6 +63,8 @@ async def test_stage0_ssr_city_page_renders_with_stubbed_backend():
     original_current = web_app.air_service.get_current_data
     original_forecast = web_app.air_service.get_forecast_data
     original_history = web_app.air_service.get_history_data
+    original_trends = web_app.air_service.get_trends_data
+    original_health = web_app.air_service.check_health
 
     async def _fake_current(lat: float, lon: float):
         return {
@@ -78,9 +80,17 @@ async def test_stage0_ssr_city_page_renders_with_stubbed_backend():
     async def _fake_history(**kwargs):
         return {"items": [{"aqi": 82, "metadata": {"confidence": 0.88}}], "total": 1, "range": "24h"}
 
+    async def _fake_trends(**kwargs):
+        return {"summary": "trend summary", "points": []}
+
+    async def _fake_health():
+        return {"status": "healthy", "public_status": "healthy", "reachable": True}
+
     web_app.air_service.get_current_data = _fake_current
     web_app.air_service.get_forecast_data = _fake_forecast
     web_app.air_service.get_history_data = _fake_history
+    web_app.air_service.get_trends_data = _fake_trends
+    web_app.air_service.check_health = _fake_health
     try:
         transport = httpx.ASGITransport(app=web_app.app)
         async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
@@ -89,6 +99,8 @@ async def test_stage0_ssr_city_page_renders_with_stubbed_backend():
         web_app.air_service.get_current_data = original_current
         web_app.air_service.get_forecast_data = original_forecast
         web_app.air_service.get_history_data = original_history
+        web_app.air_service.get_trends_data = original_trends
+        web_app.air_service.check_health = original_health
 
     assert response.status_code == 200
     html = response.text
@@ -112,6 +124,8 @@ async def test_stage0_ssr_custom_submit_renders_with_stubbed_backend():
     original_current = web_app.air_service.get_current_data
     original_forecast = web_app.air_service.get_forecast_data
     original_history = web_app.air_service.get_history_data
+    original_trends = web_app.air_service.get_trends_data
+    original_health = web_app.air_service.check_health
 
     async def _fake_current(lat: float, lon: float):
         return {
@@ -127,9 +141,17 @@ async def test_stage0_ssr_custom_submit_renders_with_stubbed_backend():
     async def _fake_history(**kwargs):
         return {"items": [{"aqi": 68, "metadata": {"confidence": 0.84}}], "total": 1, "range": "24h"}
 
+    async def _fake_trends(**kwargs):
+        return {"summary": "trend summary", "points": []}
+
+    async def _fake_health():
+        return {"status": "healthy", "public_status": "healthy", "reachable": True}
+
     web_app.air_service.get_current_data = _fake_current
     web_app.air_service.get_forecast_data = _fake_forecast
     web_app.air_service.get_history_data = _fake_history
+    web_app.air_service.get_trends_data = _fake_trends
+    web_app.air_service.check_health = _fake_health
     try:
         transport = httpx.ASGITransport(app=web_app.app)
         async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
@@ -138,6 +160,8 @@ async def test_stage0_ssr_custom_submit_renders_with_stubbed_backend():
         web_app.air_service.get_current_data = original_current
         web_app.air_service.get_forecast_data = original_forecast
         web_app.air_service.get_history_data = original_history
+        web_app.air_service.get_trends_data = original_trends
+        web_app.air_service.check_health = original_health
 
     assert response.status_code == 200
     assert "AirTrace RU" in response.text

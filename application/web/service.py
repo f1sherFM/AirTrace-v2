@@ -92,12 +92,28 @@ class WebAppService:
             "no",
             "off",
         }
+        self._readonly_backend_enabled = os.getenv("WEB_READONLY_USE_BACKEND_API", "true").strip().lower() not in {
+            "0",
+            "false",
+            "no",
+            "off",
+        }
 
     async def get_current_data(self, lat: float, lon: float) -> dict[str, Any]:
+        if self._use_backend_readonly_api():
+            payload = await self._request_readonly_api("GET", "/v2/current", params={"lat": lat, "lon": lon})
+            return dict(payload)
         payload = await query_current_air_quality(lat=lat, lon=lon)
         return payload.model_dump(mode="json")
 
     async def get_forecast_data(self, lat: float, lon: float, hours: int = 24) -> list[dict[str, Any]]:
+        if self._use_backend_readonly_api():
+            payload = await self._request_readonly_api(
+                "GET",
+                "/v2/forecast",
+                params={"lat": lat, "lon": lon, "hours": hours},
+            )
+            return list(payload or [])
         payload = await query_forecast_air_quality(lat=lat, lon=lon, hours=hours)
         return [item.model_dump(mode="json") for item in payload]
 
@@ -112,6 +128,20 @@ class WebAppService:
         page: int = 1,
         sort: str = "desc",
     ) -> dict[str, Any]:
+        if self._use_backend_readonly_api():
+            params: dict[str, Any] = {
+                "range": range_preset,
+                "page_size": page_size,
+                "page": page,
+                "sort": sort,
+            }
+            if city_key:
+                params["city"] = city_key
+            else:
+                params["lat"] = lat
+                params["lon"] = lon
+            payload = await self._request_readonly_api("GET", "/v2/history", params=params)
+            return dict(payload)
         payload = await query_history(
             range_value=HistoryRange(range_preset),
             page=page,
@@ -131,6 +161,15 @@ class WebAppService:
         lon: Optional[float] = None,
         range_preset: str = "7d",
     ) -> dict[str, Any]:
+        if self._use_backend_readonly_api():
+            params: dict[str, Any] = {"range": range_preset}
+            if city_key:
+                params["city"] = city_key
+            else:
+                params["lat"] = lat
+                params["lon"] = lon
+            payload = await self._request_readonly_api("GET", "/v2/trends", params=params)
+            return dict(payload)
         payload = await query_trends_v2(
             range_value=TrendRange(range_preset),
             city=city_key or None,
@@ -146,6 +185,14 @@ class WebAppService:
         return None
 
     async def check_health(self) -> dict[str, Any]:
+        if self._use_backend_readonly_api():
+            try:
+                payload = await self._request_readonly_api("GET", "/v2/health")
+                data = dict(payload)
+                data["reachable"] = True
+                return data
+            except Exception:
+                return {"status": "unhealthy", "reachable": False, "services": {}}
         try:
             payload = await query_health()
             data = payload.model_dump(mode="json")
@@ -176,6 +223,9 @@ class WebAppService:
     def _use_backend_alerts_api(self) -> bool:
         return self._alerts_backend_enabled and bool(self._alerts_api_base_url) and bool(self._alerts_api_key)
 
+    def _use_backend_readonly_api(self) -> bool:
+        return self._readonly_backend_enabled and bool(self._alerts_api_base_url)
+
     @property
     def _alerts_api_base_url(self) -> str:
         return (
@@ -199,6 +249,32 @@ class WebAppService:
         json_body: Optional[dict[str, Any]] = None,
         params: Optional[dict[str, Any]] = None,
     ) -> Any:
+        return await self._request_api(
+            method,
+            path,
+            json_body=json_body,
+            params=params,
+            headers=self._alerts_api_headers(),
+        )
+
+    async def _request_readonly_api(
+        self,
+        method: str,
+        path: str,
+        *,
+        params: Optional[dict[str, Any]] = None,
+    ) -> Any:
+        return await self._request_api(method, path, params=params, headers=None)
+
+    async def _request_api(
+        self,
+        method: str,
+        path: str,
+        *,
+        json_body: Optional[dict[str, Any]] = None,
+        params: Optional[dict[str, Any]] = None,
+        headers: Optional[dict[str, str]] = None,
+    ) -> Any:
         async with create_internal_async_client(
             base_url=self._alerts_api_base_url,
             timeout_seconds=self._alerts_api_timeout_seconds,
@@ -211,7 +287,7 @@ class WebAppService:
                 response = await client.request(
                     method,
                     path,
-                    headers=self._alerts_api_headers(),
+                    headers=headers,
                     json=json_body,
                     params=params,
                 )
