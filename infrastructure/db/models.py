@@ -43,7 +43,7 @@ class LocationModel(Base):
     latitude: Mapped[float] = mapped_column(Float, nullable=False)
     longitude: Mapped[float] = mapped_column(Float, nullable=False)
     coordinate_key: Mapped[str] = mapped_column(String(64), nullable=False)
-    is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True, server_default="1")
+    is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True, server_default="true")
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=_utc_now, server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
@@ -99,7 +99,7 @@ class DataProvenanceModel(Base):
     freshness: Mapped[str] = mapped_column(String(16), nullable=False)
     confidence: Mapped[float] = mapped_column(Numeric(4, 3), nullable=False)
     confidence_explanation: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
-    fallback_used: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False, server_default="0")
+    fallback_used: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False, server_default="false")
     cache_age_seconds: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
     source_chain: Mapped[Optional[dict[str, Any]]] = mapped_column(JSON, nullable=True)
     raw_metadata: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False, default=dict)
@@ -127,7 +127,7 @@ class AlertSubscriptionModel(Base):
 
     id: Mapped[str] = mapped_column(String(64), primary_key=True)
     name: Mapped[str] = mapped_column(String(120), nullable=False)
-    enabled: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True, server_default="1")
+    enabled: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True, server_default="true")
     city_code: Mapped[Optional[str]] = mapped_column(String(64), nullable=True, index=True)
     latitude: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
     longitude: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
@@ -173,7 +173,7 @@ class AlertDeliveryAttemptModel(Base):
     retry_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0, server_default="0")
     error: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     provider_response: Mapped[Optional[dict[str, Any]]] = mapped_column(JSON, nullable=True)
-    dead_lettered: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False, server_default="0")
+    dead_lettered: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False, server_default="false")
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=_utc_now, server_default=func.now())
 
     subscription: Mapped[AlertSubscriptionModel] = relationship(back_populates="delivery_attempts")

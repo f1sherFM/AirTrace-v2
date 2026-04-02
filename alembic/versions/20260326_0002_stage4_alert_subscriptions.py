@@ -17,7 +17,7 @@ def upgrade() -> None:
         "alert_subscriptions",
         sa.Column("id", sa.String(length=64), nullable=False),
         sa.Column("name", sa.String(length=120), nullable=False),
-        sa.Column("enabled", sa.Boolean(), nullable=False, server_default=sa.text("1")),
+        sa.Column("enabled", sa.Boolean(), nullable=False, server_default=sa.text("true")),
         sa.Column("city_code", sa.String(length=64), nullable=True),
         sa.Column("latitude", sa.Float(), nullable=True),
         sa.Column("longitude", sa.Float(), nullable=True),
@@ -74,7 +74,7 @@ def upgrade() -> None:
         sa.Column("retry_count", sa.Integer(), nullable=False, server_default=sa.text("0")),
         sa.Column("error", sa.Text(), nullable=True),
         sa.Column("provider_response", sa.JSON(), nullable=True),
-        sa.Column("dead_lettered", sa.Boolean(), nullable=False, server_default=sa.text("0")),
+        sa.Column("dead_lettered", sa.Boolean(), nullable=False, server_default=sa.text("false")),
         sa.Column("created_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.func.now()),
         sa.ForeignKeyConstraint(
             ["subscription_id"],
