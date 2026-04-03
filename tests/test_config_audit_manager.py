@@ -12,7 +12,7 @@ import json
 from datetime import datetime, timezone, timedelta
 from pathlib import Path
 
-from config_audit_manager import (
+from infrastructure.ops.config_audit_manager import (
     ConfigurationAuditManager,
     ConfigurationChange,
     PerformanceImpact,

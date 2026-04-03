@@ -483,7 +483,7 @@ class ConfigManager:
     def _initialize_audit_manager(self):
         """Initialize configuration audit manager"""
         try:
-            from config_audit_manager import setup_configuration_audit
+            from infrastructure.ops.config_audit_manager import setup_configuration_audit
             self._audit_manager = setup_configuration_audit()
             
             # Add validation rules for critical configuration changes
