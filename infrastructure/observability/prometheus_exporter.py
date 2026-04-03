@@ -20,7 +20,7 @@ from infrastructure.observability.performance_monitor import (
     PerformanceStats,
     get_performance_monitor,
 )
-from system_monitor import get_system_monitor
+from infrastructure.resources.system_monitor import get_system_monitor
 
 logger = logging.getLogger(__name__)
 
@@ -296,7 +296,7 @@ class PrometheusExporter:
             
             # Resource management metrics
             try:
-                from resource_manager import get_resource_manager
+                from infrastructure.resources.resource_manager import get_resource_manager
                 resource_manager = get_resource_manager()
                 resource_usage = await resource_manager.get_resource_usage()
                 

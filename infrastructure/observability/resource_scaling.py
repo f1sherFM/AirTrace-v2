@@ -903,7 +903,7 @@ class DynamicResourceScaler:
         """Collect enhanced load metrics from multiple sources"""
         # Get basic system metrics
         try:
-            from system_monitor import get_system_monitor
+            from infrastructure.resources.system_monitor import get_system_monitor
             system_monitor = get_system_monitor()
             
             if system_monitor.metrics_history:

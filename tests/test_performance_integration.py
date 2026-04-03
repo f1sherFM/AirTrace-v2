@@ -27,7 +27,7 @@ from infrastructure.rate_limiting.rate_limiter import RateLimiter
 from infrastructure.integrations.connection_pool import ConnectionPoolManager, ServiceType, APIRequest
 from infrastructure.observability.performance_monitor import PerformanceMonitor
 from request_optimizer import RequestOptimizer
-from resource_manager import ResourceManager
+from infrastructure.resources.resource_manager import ResourceManager
 from infrastructure.integrations.weather_api_manager import WeatherAPIManager
 from unified_weather_service import UnifiedWeatherService
 from graceful_degradation import GracefulDegradationManager
@@ -384,7 +384,7 @@ class TestEndToEndPerformanceMonitoring:
         if manager.resource_manager:
             # Mock high memory usage
             with patch.object(manager.resource_manager, 'get_resource_usage') as mock_usage:
-                from resource_manager import ResourceUsage, MemoryUsage, CPUUsage
+                    from infrastructure.resources.resource_manager import ResourceUsage, MemoryUsage, CPUUsage
                 
                 mock_usage.return_value = ResourceUsage(
                     timestamp=datetime.now(),

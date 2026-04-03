@@ -125,14 +125,14 @@ async def get_comprehensive_metrics():
             comprehensive_metrics["connection_pools"] = {"error": str(exc)}
 
         try:
-            from resource_manager import get_resource_manager
+            from infrastructure.resources.resource_manager import get_resource_manager
 
             comprehensive_metrics["resource_management"] = (await get_resource_manager().get_resource_usage()).__dict__
         except Exception as exc:
             comprehensive_metrics["resource_management"] = {"error": str(exc)}
 
         try:
-            from system_monitor import get_system_monitor
+            from infrastructure.resources.system_monitor import get_system_monitor
 
             system_monitor = get_system_monitor()
             if system_monitor.metrics_history:

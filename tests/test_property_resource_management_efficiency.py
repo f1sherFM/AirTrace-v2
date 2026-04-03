@@ -18,11 +18,11 @@ from hypothesis import given, strategies as st, settings, assume
 from typing import Dict, Any, Optional
 from unittest.mock import Mock, patch, AsyncMock
 
-from resource_manager import (
+from infrastructure.resources.resource_manager import (
     ResourceManager, ResourceLimits, ResourceUsage, MemoryUsage, CPUUsage,
     MemoryOptimizationResult, ResourcePool, get_resource_manager
 )
-from resource_circuit_breaker import (
+from infrastructure.resources.resource_circuit_breaker import (
     ResourceCircuitBreaker, CircuitBreakerConfig, CircuitBreakerState,
     GracefulDegradationManager, GracefulDegradationConfig,
     ResourceLimitEnforcer, CircuitBreakerOpenError

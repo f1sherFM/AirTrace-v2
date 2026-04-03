@@ -22,7 +22,7 @@ import tracemalloc
 from concurrent.futures import ThreadPoolExecutor
 
 # Import circuit breaker components
-from resource_circuit_breaker import (
+from infrastructure.resources.resource_circuit_breaker import (
     ResourceLimitEnforcer, GracefulDegradationManager, GracefulDegradationConfig,
     CircuitBreakerConfig, get_resource_limit_enforcer, get_graceful_degradation_manager
 )
@@ -707,7 +707,7 @@ class ResourceManager:
         # Check new circuit breaker system first
         breaker = self._limit_enforcer.get_circuit_breaker(breaker_name)
         if breaker:
-            from resource_circuit_breaker import CircuitBreakerState
+            from infrastructure.resources.resource_circuit_breaker import CircuitBreakerState
             return breaker.state == CircuitBreakerState.OPEN
         
         # Fallback to legacy system

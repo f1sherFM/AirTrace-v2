@@ -30,7 +30,7 @@ from infrastructure.observability.performance_monitor import (
     setup_performance_monitoring,
 )
 from request_optimizer import RequestOptimizer, setup_request_optimization
-from resource_manager import ResourceManager, get_resource_manager
+from infrastructure.resources.resource_manager import ResourceManager, get_resource_manager
 from infrastructure.integrations.weather_api_manager import WeatherAPIManager
 from unified_weather_service import UnifiedWeatherService
 
@@ -40,7 +40,7 @@ from infrastructure.observability.prometheus_exporter import (
     PrometheusExporter,
     setup_prometheus_exporter,
 )
-from system_monitor import SystemResourceMonitor, get_system_monitor
+from infrastructure.resources.system_monitor import SystemResourceMonitor, get_system_monitor
 from config import config
 
 logger = logging.getLogger(__name__)

@@ -23,7 +23,7 @@ from infrastructure.observability.performance_monitor import (
     ExternalAPIMetrics,
     PerformanceStats
 )
-from system_monitor import SystemResourceMonitor, SystemMetrics
+from infrastructure.resources.system_monitor import SystemResourceMonitor, SystemMetrics
 
 
 class TestPerformanceMonitoringAccuracy:
