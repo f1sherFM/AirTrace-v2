@@ -16,7 +16,7 @@
             --panel-bg: rgba(15, 23, 42, 0.34);
             --focus-ring: #fbbf24;
         }
-        body { font-family: 'IBM Plex Sans', sans-serif; }
+        body { font-family: 'IBM Plex Sans', sans-serif; position: relative; isolation: isolate; }
         .page-bg { background: radial-gradient(circle at top left, #0f766e 0%, #0f172a 44%, #111827 100%); }
         .glass { background: var(--glass-bg); border: 1px solid var(--glass-border); backdrop-filter: blur(14px); }
         .panel { background: var(--panel-bg); border: 1px solid rgba(255,255,255,0.12); backdrop-filter: blur(10px); }
@@ -28,6 +28,26 @@
         .aqi-unhealthy { background: linear-gradient(135deg, #991b1b 0%, #b91c1c 100%); }
         .aqi-very-unhealthy { background: linear-gradient(135deg, #5b21b6 0%, #6d28d9 100%); }
         .aqi-hazardous { background: linear-gradient(135deg, #581c1c 0%, #7f1d1d 100%); }
+        body[class*="aqi-"]::before {
+            content: "";
+            position: fixed;
+            inset: 0;
+            background:
+                linear-gradient(180deg, rgba(2, 6, 23, 0.28) 0%, rgba(2, 6, 23, 0.46) 100%),
+                radial-gradient(circle at top right, rgba(255,255,255,0.07) 0%, rgba(255,255,255,0.02) 22%, transparent 46%);
+            pointer-events: none;
+            z-index: -1;
+        }
+        body[class*="aqi-"] .glass {
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.14);
+            backdrop-filter: blur(16px);
+        }
+        body[class*="aqi-"] .panel {
+            background: rgba(2, 6, 23, 0.42);
+            border: 1px solid rgba(255, 255, 255, 0.10);
+            backdrop-filter: blur(12px);
+        }
         :focus-visible { outline: 3px solid var(--focus-ring); outline-offset: 2px; border-radius: 8px; }
         .skip-link {
             position: absolute; left: 12px; top: -40px; z-index: 1000;
