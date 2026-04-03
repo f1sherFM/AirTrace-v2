@@ -19,7 +19,7 @@ import redis.asyncio as redis
 from redis.asyncio import Redis, RedisCluster
 from redis.exceptions import ConnectionError, TimeoutError, RedisError
 
-from rate_limit_types import (
+from infrastructure.rate_limiting.rate_limit_types import (
     RateLimitStrategy, EndpointCategory, RateLimitConfig, 
     RateLimitResult, RateLimitInfo, RateLimitMetrics
 )
@@ -29,7 +29,11 @@ logger = logging.getLogger(__name__)
 
 # Import monitoring after logger to avoid circular imports
 try:
-    from rate_limit_monitoring import get_rate_limit_monitor, ViolationType, RateLimitConfigValidator
+    from infrastructure.rate_limiting.rate_limit_monitoring import (
+        RateLimitConfigValidator,
+        ViolationType,
+        get_rate_limit_monitor,
+    )
     MONITORING_AVAILABLE = True
 except ImportError:
     MONITORING_AVAILABLE = False

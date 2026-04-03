@@ -17,9 +17,12 @@ from fastapi.responses import JSONResponse
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.types import ASGIApp
 
-from rate_limit_types import RateLimitResult
-from rate_limiter import RateLimiter
-from rate_limit_monitoring import get_rate_limit_monitor, setup_rate_limit_logging
+from infrastructure.rate_limiting.rate_limiter import RateLimiter
+from infrastructure.rate_limiting.rate_limit_monitoring import (
+    get_rate_limit_monitor,
+    setup_rate_limit_logging,
+)
+from infrastructure.rate_limiting.rate_limit_types import RateLimitResult
 from schemas import ErrorResponse
 
 

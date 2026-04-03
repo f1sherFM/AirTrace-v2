@@ -189,7 +189,7 @@ async def query_health() -> HealthCheckResponse:
             services_status["privacy_middleware"] = "unhealthy"
 
         try:
-            from rate_limit_middleware import get_rate_limit_manager
+            from infrastructure.rate_limiting.rate_limit_middleware import get_rate_limit_manager
 
             if config.performance.rate_limiting_enabled:
                 rate_limit_manager = get_rate_limit_manager()

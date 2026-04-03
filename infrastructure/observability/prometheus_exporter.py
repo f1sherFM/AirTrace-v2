@@ -223,7 +223,7 @@ class PrometheusExporter:
             
             # Rate limiting metrics
             try:
-                from rate_limiter import get_rate_limiter
+                from infrastructure.rate_limiting.rate_limiter import get_rate_limiter
                 rate_limiter = get_rate_limiter()
                 rate_metrics = await rate_limiter.get_metrics()
                 

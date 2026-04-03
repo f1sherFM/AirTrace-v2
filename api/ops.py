@@ -10,8 +10,8 @@ from fastapi.responses import PlainTextResponse
 
 from config import config
 from core.privacy_validation import privacy_validator
-from rate_limit_middleware import get_rate_limit_manager
-from rate_limit_monitoring import get_rate_limit_monitor
+from infrastructure.rate_limiting.rate_limit_middleware import get_rate_limit_manager
+from infrastructure.rate_limiting.rate_limit_monitoring import get_rate_limit_monitor
 from unified_weather_service import unified_weather_service
 
 router = APIRouter()
@@ -111,7 +111,7 @@ async def get_comprehensive_metrics():
             comprehensive_metrics["cache"] = {"error": str(exc)}
 
         try:
-            from rate_limiter import get_rate_limiter
+            from infrastructure.rate_limiting.rate_limiter import get_rate_limiter
 
             comprehensive_metrics["rate_limiting"] = (await get_rate_limiter().get_metrics()).__dict__
         except Exception as exc:

@@ -15,7 +15,12 @@ from enum import Enum
 from typing import Dict, List, Optional, Any, Callable
 from collections import defaultdict, deque
 
-from rate_limit_types import RateLimitConfig, EndpointCategory, RateLimitStrategy, RateLimitMetrics
+from infrastructure.rate_limiting.rate_limit_types import (
+    EndpointCategory,
+    RateLimitConfig,
+    RateLimitMetrics,
+    RateLimitStrategy,
+)
 
 logger = logging.getLogger(__name__)
 

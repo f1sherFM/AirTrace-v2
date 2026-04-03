@@ -15,7 +15,7 @@ from datetime import datetime, timezone
 import redis.exceptions
 
 from cache import MultiLevelCacheManager, CacheLevel
-from rate_limiter import RateLimiter
+from infrastructure.rate_limiting.rate_limiter import RateLimiter
 from config import config
 
 

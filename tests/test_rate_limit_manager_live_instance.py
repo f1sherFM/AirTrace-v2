@@ -1,6 +1,10 @@
 from fastapi import FastAPI
 
-from rate_limit_middleware import RateLimitMiddleware, get_rate_limit_manager, setup_rate_limiting
+from infrastructure.rate_limiting.rate_limit_middleware import (
+    RateLimitMiddleware,
+    get_rate_limit_manager,
+    setup_rate_limiting,
+)
 
 
 def test_manager_binds_and_controls_live_middleware_instance():

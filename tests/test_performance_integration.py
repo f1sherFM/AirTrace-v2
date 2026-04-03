@@ -23,7 +23,7 @@ from infrastructure.observability.performance_integration import (
     get_performance_system_metrics
 )
 from cache import MultiLevelCacheManager, CacheLevel
-from rate_limiter import RateLimiter
+from infrastructure.rate_limiting.rate_limiter import RateLimiter
 from infrastructure.integrations.connection_pool import ConnectionPoolManager, ServiceType, APIRequest
 from infrastructure.observability.performance_monitor import PerformanceMonitor
 from request_optimizer import RequestOptimizer

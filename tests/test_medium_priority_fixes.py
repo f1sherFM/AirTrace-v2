@@ -333,7 +333,7 @@ class TestIPRateLimiting:
     @pytest.mark.asyncio
     async def test_ip_rate_limit_allows_under_limit(self):
         """Test that requests under limit are allowed"""
-        from rate_limit_middleware import RateLimitMiddleware
+        from infrastructure.rate_limiting.rate_limit_middleware import RateLimitMiddleware
         from fastapi import FastAPI
         
         app = FastAPI()
@@ -352,7 +352,7 @@ class TestIPRateLimiting:
     @pytest.mark.asyncio
     async def test_ip_rate_limit_blocks_over_limit(self):
         """Test that requests over limit are blocked"""
-        from rate_limit_middleware import RateLimitMiddleware
+        from infrastructure.rate_limiting.rate_limit_middleware import RateLimitMiddleware
         from fastapi import FastAPI
         
         app = FastAPI()
@@ -375,7 +375,7 @@ class TestIPRateLimiting:
     @pytest.mark.asyncio
     async def test_ip_rate_limit_burst_protection(self):
         """Test burst protection"""
-        from rate_limit_middleware import RateLimitMiddleware
+        from infrastructure.rate_limiting.rate_limit_middleware import RateLimitMiddleware
         from fastapi import FastAPI
         
         app = FastAPI()
@@ -399,7 +399,7 @@ class TestIPRateLimiting:
     @pytest.mark.asyncio
     async def test_ip_rate_limit_different_ips(self):
         """Test that different IPs have separate limits"""
-        from rate_limit_middleware import RateLimitMiddleware
+        from infrastructure.rate_limiting.rate_limit_middleware import RateLimitMiddleware
         from fastapi import FastAPI
         
         app = FastAPI()
@@ -425,7 +425,7 @@ class TestIPRateLimiting:
     @pytest.mark.asyncio
     async def test_ip_rate_limit_cleanup(self):
         """Test that old IP entries are cleaned up"""
-        from rate_limit_middleware import RateLimitMiddleware
+        from infrastructure.rate_limiting.rate_limit_middleware import RateLimitMiddleware
         from fastapi import FastAPI
         import time
         
@@ -448,7 +448,7 @@ class TestIPRateLimiting:
 
     def test_forwarded_headers_ignored_without_trusted_proxy(self):
         """Forwarded headers must not override client IP by default."""
-        from rate_limit_middleware import RateLimitMiddleware
+        from infrastructure.rate_limiting.rate_limit_middleware import RateLimitMiddleware
         from fastapi import FastAPI
 
         app = FastAPI()
@@ -462,7 +462,7 @@ class TestIPRateLimiting:
 
     def test_forwarded_headers_used_for_trusted_proxy(self):
         """Forwarded headers can be used only when client host is trusted proxy."""
-        from rate_limit_middleware import RateLimitMiddleware
+        from infrastructure.rate_limiting.rate_limit_middleware import RateLimitMiddleware
         from fastapi import FastAPI
 
         app = FastAPI()
@@ -481,7 +481,7 @@ class TestRateLimitMiddlewareSecurityAndPathMatching:
 
     def test_skip_path_root_matches_only_root(self):
         from fastapi import FastAPI
-        from rate_limit_middleware import RateLimitMiddleware
+        from infrastructure.rate_limiting.rate_limit_middleware import RateLimitMiddleware
 
         middleware = RateLimitMiddleware(app=FastAPI(), skip_paths=["/"])
 
@@ -490,7 +490,7 @@ class TestRateLimitMiddlewareSecurityAndPathMatching:
 
     def test_skip_path_does_not_use_substring_matching(self):
         from fastapi import FastAPI
-        from rate_limit_middleware import RateLimitMiddleware
+        from infrastructure.rate_limiting.rate_limit_middleware import RateLimitMiddleware
 
         middleware = RateLimitMiddleware(app=FastAPI(), skip_paths=["/docs", "/openapi.json"])
 
@@ -502,7 +502,7 @@ class TestRateLimitMiddlewareSecurityAndPathMatching:
 
     def test_skip_path_ignores_empty_rules(self):
         from fastapi import FastAPI
-        from rate_limit_middleware import RateLimitMiddleware
+        from infrastructure.rate_limiting.rate_limit_middleware import RateLimitMiddleware
 
         middleware = RateLimitMiddleware(app=FastAPI(), skip_paths=["", "/docs"])
 
@@ -511,7 +511,7 @@ class TestRateLimitMiddlewareSecurityAndPathMatching:
 
     def test_extract_client_ip_ignores_spoofed_headers_by_default(self):
         from fastapi import FastAPI
-        from rate_limit_middleware import RateLimitMiddleware
+        from infrastructure.rate_limiting.rate_limit_middleware import RateLimitMiddleware
         from types import SimpleNamespace
 
         middleware = RateLimitMiddleware(app=FastAPI())
@@ -524,7 +524,7 @@ class TestRateLimitMiddlewareSecurityAndPathMatching:
 
     def test_extract_client_ip_accepts_forwarded_headers_from_trusted_proxy(self):
         from fastapi import FastAPI
-        from rate_limit_middleware import RateLimitMiddleware
+        from infrastructure.rate_limiting.rate_limit_middleware import RateLimitMiddleware
         from types import SimpleNamespace
 
         middleware = RateLimitMiddleware(
@@ -541,7 +541,7 @@ class TestRateLimitMiddlewareSecurityAndPathMatching:
 
     def test_extract_client_ip_ignores_forwarded_headers_from_untrusted_proxy(self):
         from fastapi import FastAPI
-        from rate_limit_middleware import RateLimitMiddleware
+        from infrastructure.rate_limiting.rate_limit_middleware import RateLimitMiddleware
         from types import SimpleNamespace
 
         middleware = RateLimitMiddleware(

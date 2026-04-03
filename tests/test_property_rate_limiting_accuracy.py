@@ -15,9 +15,13 @@ from datetime import datetime, timezone
 from hypothesis import given, strategies as st, settings, assume
 from typing import List, Tuple
 
-from rate_limit_types import RateLimitConfig, EndpointCategory, RateLimitStrategy
-from rate_limiter import RateLimiter
-from rate_limit_middleware import RateLimitMiddleware
+from infrastructure.rate_limiting.rate_limiter import RateLimiter
+from infrastructure.rate_limiting.rate_limit_middleware import RateLimitMiddleware
+from infrastructure.rate_limiting.rate_limit_types import (
+    EndpointCategory,
+    RateLimitConfig,
+    RateLimitStrategy,
+)
 from fastapi import FastAPI, Request
 from fastapi.testclient import TestClient
 from unittest.mock import Mock, AsyncMock

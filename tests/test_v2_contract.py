@@ -10,7 +10,7 @@ import pytest
 
 import main
 from history_ingestion import InMemoryHistoricalSnapshotStore
-from rate_limit_middleware import RateLimitMiddleware
+from infrastructure.rate_limiting.rate_limit_middleware import RateLimitMiddleware
 from schemas import (
     AQIInfo,
     AirQualityData,

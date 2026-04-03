@@ -3,9 +3,9 @@ from __future__ import annotations
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
-from rate_limit_middleware import RateLimitMiddleware
-from rate_limiter import RateLimiter
-from rate_limit_types import EndpointCategory, RateLimitConfig
+from infrastructure.rate_limiting.rate_limiter import RateLimiter
+from infrastructure.rate_limiting.rate_limit_middleware import RateLimitMiddleware
+from infrastructure.rate_limiting.rate_limit_types import EndpointCategory, RateLimitConfig
 
 
 def _build_app() -> TestClient:

@@ -59,8 +59,8 @@ from application.services.history_storage import (
     build_canonical_locations_from_mapping,
 )
 from middleware import PrivacyMiddleware, set_privacy_middleware, setup_privacy_logging
-from rate_limit_middleware import setup_rate_limiting
-from rate_limit_monitoring import setup_rate_limit_logging
+from infrastructure.rate_limiting.rate_limit_middleware import setup_rate_limiting
+from infrastructure.rate_limiting.rate_limit_monitoring import setup_rate_limit_logging
 from services import AirQualityService
 from unified_weather_service import unified_weather_service
 
@@ -140,7 +140,7 @@ async def lifespan(app: FastAPI):
     )
 
     if config.performance.rate_limiting_enabled:
-        from rate_limit_middleware import get_rate_limit_manager
+        from infrastructure.rate_limiting.rate_limit_middleware import get_rate_limit_manager
 
         await degradation_manager.register_component("rate_limiting", lambda: get_rate_limit_manager().is_enabled())
     if config.weather_api.enabled:
@@ -265,7 +265,7 @@ async def lifespan(app: FastAPI):
 
         if config.performance.rate_limiting_enabled:
             try:
-                from rate_limit_middleware import get_rate_limit_manager
+                from infrastructure.rate_limiting.rate_limit_middleware import get_rate_limit_manager
 
                 await get_rate_limit_manager().cleanup()
             except Exception as exc:

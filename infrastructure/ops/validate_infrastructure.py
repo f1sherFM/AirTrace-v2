@@ -65,8 +65,12 @@ async def validate_rate_limiting():
     logger.info("🔍 Validating rate limiting system...")
     
     try:
-        from rate_limiter import RateLimiter
-        from rate_limit_types import RateLimitConfig, EndpointCategory, RateLimitStrategy
+        from infrastructure.rate_limiting.rate_limiter import RateLimiter
+        from infrastructure.rate_limiting.rate_limit_types import (
+            EndpointCategory,
+            RateLimitConfig,
+            RateLimitStrategy,
+        )
         
         rate_limiter = RateLimiter()
         
@@ -158,7 +162,7 @@ async def validate_graceful_degradation():
     try:
         # Test that components can handle failures gracefully
         from cache import MultiLevelCacheManager
-        from rate_limiter import RateLimiter
+        from infrastructure.rate_limiting.rate_limiter import RateLimiter
         from infrastructure.integrations.connection_pool import ConnectionPoolManager
         
         # Test cache with Redis unavailable (should fall back to memory)
