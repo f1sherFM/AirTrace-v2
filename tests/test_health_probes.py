@@ -4,6 +4,8 @@ import httpx
 import pytest
 
 import main
+from infrastructure.integrations.connection_pool import APIResponse, ServiceType
+from services import AirQualityService
 
 
 @pytest.mark.asyncio
@@ -44,3 +46,46 @@ async def test_liveness_and_readiness_endpoints():
 
             assert live_v2.status_code == 200
             assert ready_v2.status_code == 200
+
+
+@pytest.mark.asyncio
+async def test_external_api_health_returns_degraded_and_enters_cooldown_on_429():
+    service = AirQualityService()
+    service.use_connection_pool = True
+
+    with patch("services.get_connection_pool_manager") as pool_manager_mock:
+        pool_manager_mock.return_value.execute_request = AsyncMock(
+            return_value=APIResponse(
+                status_code=429,
+                data={"error": "rate limited"},
+                headers={"Retry-After": "120"},
+                response_time=0.1,
+            )
+        )
+        first_status = await service.check_external_api_health()
+        second_status = await service.check_external_api_health()
+
+    assert first_status == "degraded"
+    assert second_status == "degraded"
+    assert pool_manager_mock.return_value.execute_request.await_count == 1
+
+
+@pytest.mark.asyncio
+async def test_open_meteo_pool_health_probe_uses_rate_limit_cooldown():
+    from infrastructure.integrations.connection_pool import ConnectionPool, PoolConfig
+
+    pool = ConnectionPool(ServiceType.OPEN_METEO, "https://example.test", PoolConfig())
+
+    class _Response:
+        def __init__(self):
+            self.status_code = 429
+            self.headers = {"Retry-After": "120"}
+            self.request = httpx.Request("GET", "https://example.test")
+
+    with patch.object(pool.client, "get", AsyncMock(return_value=_Response())):
+        first = await pool._perform_health_check()
+        second = await pool._perform_health_check()
+
+    assert first is True
+    assert second is True
+    assert pool.health_check_rate_limited_until is not None

@@ -343,6 +343,7 @@ class ConnectionPool:
         # Health check
         self.last_health_check = 0
         self.health_check_task: Optional[asyncio.Task] = None
+        self.health_check_rate_limited_until: Optional[datetime] = None
         
         # Connection recycling
         self.connection_created_time = time.time()
@@ -567,6 +568,21 @@ class ConnectionPool:
         # Start background tasks if not already started
         if not self._background_tasks_started:
             self._start_background_tasks()
+
+        now = datetime.now(timezone.utc)
+        if (
+            self.service_type == ServiceType.OPEN_METEO
+            and self.health_check_rate_limited_until is not None
+            and now < self.health_check_rate_limited_until
+        ):
+            logger.info(
+                "Skipping Open-Meteo pool health probe until %s after provider rate limiting",
+                self.health_check_rate_limited_until.isoformat(),
+            )
+            self.status = ConnectionStatus.HEALTHY
+            async with self.stats_lock:
+                self.metrics.last_health_check = now
+            return True
         
         try:
             start_time = time.time()
@@ -591,6 +607,7 @@ class ConnectionPool:
             response_time = time.time() - start_time
             
             if response.status_code == 200:
+                self.health_check_rate_limited_until = None
                 self.status = ConnectionStatus.HEALTHY
                 await self.circuit_breaker.record_success()
                 
@@ -599,6 +616,16 @@ class ConnectionPool:
                     self.metrics.last_health_check = datetime.now(timezone.utc)
                 
                 logger.debug(f"Health check passed for {self.service_type.value} ({response_time:.3f}s)")
+                return True
+            if response.status_code == 429 and self.service_type == ServiceType.OPEN_METEO:
+                self.health_check_rate_limited_until = self._derive_rate_limit_cooldown_until(response.headers)
+                self.status = ConnectionStatus.HEALTHY
+                async with self.stats_lock:
+                    self.metrics.last_health_check = datetime.now(timezone.utc)
+                logger.warning(
+                    "Open-Meteo pool health probe hit provider rate limit; cooling down until %s",
+                    self.health_check_rate_limited_until.isoformat(),
+                )
                 return True
             else:
                 raise httpx.HTTPStatusError(
@@ -617,6 +644,16 @@ class ConnectionPool:
             
             logger.warning(f"Health check failed for {self.service_type.value}: {e}")
             return False
+
+    def _derive_rate_limit_cooldown_until(self, headers: Dict[str, Any]) -> datetime:
+        retry_after_value = headers.get("Retry-After") or headers.get("retry-after")
+        retry_after_seconds = 300
+        if retry_after_value is not None:
+            try:
+                retry_after_seconds = max(60, int(float(retry_after_value)))
+            except (TypeError, ValueError):
+                retry_after_seconds = 300
+        return datetime.now(timezone.utc) + timedelta(seconds=retry_after_seconds)
     
     async def get_metrics(self) -> ConnectionMetrics:
         """Get current pool metrics with enhanced queue and circuit breaker metrics"""

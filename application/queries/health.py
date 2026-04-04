@@ -108,18 +108,24 @@ def _derive_overall_health_status(normalized_services: dict[str, dict[str, Any]]
 def _derive_public_health_status(normalized_services: dict[str, dict[str, Any]]) -> str:
     core_components = (
         "api",
-        "external_api",
         "aqi_calculator",
         "nmu_detector",
     )
-    statuses = [
+    core_statuses = [
         _normalize_health_status(normalized_services.get(name, {}).get("status", "degraded"))
         for name in core_components
     ]
+    provider_components = ("external_api",)
+    provider_statuses = [
+        _normalize_health_status(normalized_services.get(name, {}).get("status", "degraded"))
+        for name in provider_components
+    ]
 
-    if any(status == "unhealthy" for status in statuses):
+    if any(status == "unhealthy" for status in core_statuses):
         return "unhealthy"
-    if any(status == "degraded" for status in statuses):
+    if any(status == "degraded" for status in core_statuses):
+        return "degraded"
+    if any(status in {"unhealthy", "degraded"} for status in provider_statuses):
         return "degraded"
     return "healthy"
 

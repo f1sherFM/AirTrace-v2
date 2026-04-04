@@ -4,7 +4,7 @@ import httpx
 import pytest
 
 import main
-from application.queries.health import _derive_overall_health_status
+from application.queries.health import _derive_overall_health_status, _derive_public_health_status
 from tests.test_stage5_ssr_rendering import web_app
 
 
@@ -60,3 +60,16 @@ def test_overall_health_treats_optional_degraded_components_as_noise_when_core_i
     }
 
     assert _derive_overall_health_status(normalized_services) == "healthy"
+
+
+def test_public_health_treats_provider_outage_as_degraded_when_core_is_healthy():
+    normalized_services = {
+        "api": {"status": "healthy", "details": {}},
+        "aqi_calculator": {"status": "healthy", "details": {}},
+        "nmu_detector": {"status": "healthy", "details": {}},
+        "external_api": {"status": "unhealthy", "details": {}},
+        "weather_api": {"status": "unhealthy", "details": {}},
+        "connection_pools": {"status": "unhealthy", "details": {}},
+    }
+
+    assert _derive_public_health_status(normalized_services) == "degraded"

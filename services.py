@@ -108,6 +108,7 @@ class AirQualityService:
         
         self.cache_manager = MultiLevelCacheManager()
         self.aqi_calculator = AQICalculator()
+        self._external_api_rate_limited_until: Optional[datetime] = None
 
     @staticmethod
     def _is_pool_saturation_error(error: Exception) -> bool:
@@ -618,6 +619,14 @@ class AirQualityService:
             str: Статус API ("healthy", "unhealthy", "degraded")
         """
         try:
+            now = datetime.now(timezone.utc)
+            if self._external_api_rate_limited_until is not None and now < self._external_api_rate_limited_until:
+                logger.info(
+                    "External API health probe is in cooldown until %s after provider rate limiting",
+                    self._external_api_rate_limited_until.isoformat(),
+                )
+                return "degraded"
+
             # Simple ping request based on service type
             test_params = {
                 "latitude": 55.7558,  # Москва для тестирования
@@ -644,6 +653,15 @@ class AirQualityService:
                         ServiceType.OPEN_METEO,
                         api_request
                     )
+                    if api_response.status_code == 429:
+                        self._external_api_rate_limited_until = self._derive_rate_limit_cooldown_until(
+                            api_response.headers
+                        )
+                        logger.warning(
+                            "External API health probe hit provider rate limit; cooling down until %s",
+                            self._external_api_rate_limited_until.isoformat(),
+                        )
+                        return "degraded"
                     data = api_response.data
                     status_code = api_response.status_code
                 except Exception as pool_error:
@@ -659,6 +677,15 @@ class AirQualityService:
                         params=test_params,
                         timeout=10.0,
                     )
+                    if response.status_code == 429:
+                        self._external_api_rate_limited_until = self._derive_rate_limit_cooldown_until(
+                            response.headers
+                        )
+                        logger.warning(
+                            "External API health probe hit provider rate limit via direct client; cooling down until %s",
+                            self._external_api_rate_limited_until.isoformat(),
+                        )
+                        return "degraded"
                     response.raise_for_status()
                     data = response.json()
                     status_code = response.status_code
@@ -668,6 +695,15 @@ class AirQualityService:
                     params=test_params,
                     timeout=10.0  # Короткий таймаут для health check
                 )
+                if response.status_code == 429:
+                    self._external_api_rate_limited_until = self._derive_rate_limit_cooldown_until(
+                        response.headers
+                    )
+                    logger.warning(
+                        "External API health probe hit provider rate limit; cooling down until %s",
+                        self._external_api_rate_limited_until.isoformat(),
+                    )
+                    return "degraded"
                 response.raise_for_status()
                 data = response.json()
                 status_code = response.status_code
@@ -700,6 +736,7 @@ class AirQualityService:
                 logger.warning("External API response missing pollutant data")
                 return "degraded"
             
+            self._external_api_rate_limited_until = None
             logger.info("External API health check passed")
             return "healthy"
             
@@ -707,6 +744,15 @@ class AirQualityService:
             logger.error("External API health check timed out")
             return "unhealthy"
         except httpx.HTTPStatusError as e:
+            if e.response is not None and e.response.status_code == 429:
+                self._external_api_rate_limited_until = self._derive_rate_limit_cooldown_until(
+                    e.response.headers
+                )
+                logger.warning(
+                    "External API health check hit provider rate limit; cooling down until %s",
+                    self._external_api_rate_limited_until.isoformat(),
+                )
+                return "degraded"
             logger.error(f"External API health check failed with HTTP error: {e.response.status_code}")
             return "unhealthy"
         except httpx.RequestError as e:
@@ -718,6 +764,20 @@ class AirQualityService:
         except Exception as e:
             logger.error(f"External API health check failed with unexpected error: {e}")
             return "unhealthy"
+
+    def _derive_rate_limit_cooldown_until(self, headers: Optional[Dict[str, Any]] = None) -> datetime:
+        retry_after_value = None
+        if headers:
+            retry_after_value = headers.get("Retry-After") or headers.get("retry-after")
+
+        retry_after_seconds = 300
+        if retry_after_value is not None:
+            try:
+                retry_after_seconds = max(60, int(float(retry_after_value)))
+            except (TypeError, ValueError):
+                retry_after_seconds = 300
+
+        return datetime.now(timezone.utc) + timedelta(seconds=retry_after_seconds)
     
     def _log_external_request(self, url: str, has_coordinates: bool = False):
         """
