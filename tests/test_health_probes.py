@@ -71,6 +71,28 @@ async def test_external_api_health_returns_degraded_and_enters_cooldown_on_429()
 
 
 @pytest.mark.asyncio
+async def test_external_api_health_returns_cached_healthy_status_within_ttl():
+    service = AirQualityService()
+    service.use_connection_pool = True
+
+    with patch("services.get_connection_pool_manager") as pool_manager_mock:
+        pool_manager_mock.return_value.execute_request = AsyncMock(
+            return_value=APIResponse(
+                status_code=200,
+                data={"latitude": 55.7558, "longitude": 37.6176, "current": {"pm10": 10.0}},
+                headers={},
+                response_time=0.1,
+            )
+        )
+        first_status = await service.check_external_api_health()
+        second_status = await service.check_external_api_health()
+
+    assert first_status == "healthy"
+    assert second_status == "healthy"
+    assert pool_manager_mock.return_value.execute_request.await_count == 1
+
+
+@pytest.mark.asyncio
 async def test_open_meteo_pool_health_probe_uses_rate_limit_cooldown():
     from infrastructure.integrations.connection_pool import ConnectionPool, PoolConfig
 
@@ -89,3 +111,24 @@ async def test_open_meteo_pool_health_probe_uses_rate_limit_cooldown():
     assert first is True
     assert second is True
     assert pool.health_check_rate_limited_until is not None
+
+
+@pytest.mark.asyncio
+async def test_open_meteo_pool_health_probe_reuses_recent_result_within_interval():
+    from infrastructure.integrations.connection_pool import ConnectionPool, PoolConfig
+
+    pool = ConnectionPool(ServiceType.OPEN_METEO, "https://example.test", PoolConfig(health_check_interval=120))
+
+    class _Response:
+        def __init__(self):
+            self.status_code = 200
+            self.headers = {}
+            self.request = httpx.Request("GET", "https://example.test")
+
+    with patch.object(pool.client, "get", AsyncMock(return_value=_Response())) as get_mock:
+        first = await pool._perform_health_check()
+        second = await pool._perform_health_check()
+
+    assert first is True
+    assert second is True
+    assert get_mock.await_count == 1

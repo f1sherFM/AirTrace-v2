@@ -570,6 +570,8 @@ class ConnectionPool:
             self._start_background_tasks()
 
         now = datetime.now(timezone.utc)
+        if self.last_health_check and (time.time() - self.last_health_check) < self.config.health_check_interval:
+            return self.status != ConnectionStatus.UNHEALTHY
         if (
             self.service_type == ServiceType.OPEN_METEO
             and self.health_check_rate_limited_until is not None
@@ -582,6 +584,7 @@ class ConnectionPool:
             self.status = ConnectionStatus.HEALTHY
             async with self.stats_lock:
                 self.metrics.last_health_check = now
+            self.last_health_check = time.time()
             return True
         
         try:
@@ -614,6 +617,7 @@ class ConnectionPool:
                 async with self.stats_lock:
                     self.metrics.health_check_count += 1
                     self.metrics.last_health_check = datetime.now(timezone.utc)
+                self.last_health_check = time.time()
                 
                 logger.debug(f"Health check passed for {self.service_type.value} ({response_time:.3f}s)")
                 return True
@@ -622,6 +626,7 @@ class ConnectionPool:
                 self.status = ConnectionStatus.HEALTHY
                 async with self.stats_lock:
                     self.metrics.last_health_check = datetime.now(timezone.utc)
+                self.last_health_check = time.time()
                 logger.warning(
                     "Open-Meteo pool health probe hit provider rate limit; cooling down until %s",
                     self.health_check_rate_limited_until.isoformat(),
@@ -641,6 +646,7 @@ class ConnectionPool:
             async with self.stats_lock:
                 self.metrics.health_check_failures += 1
                 self.metrics.last_health_check = datetime.now(timezone.utc)
+            self.last_health_check = time.time()
             
             logger.warning(f"Health check failed for {self.service_type.value}: {e}")
             return False
