@@ -108,6 +108,7 @@ class AirQualityService:
         
         self.cache_manager = MultiLevelCacheManager()
         self.aqi_calculator = AQICalculator()
+        self._open_meteo_rate_limited_until: Optional[datetime] = None
         self._external_api_rate_limited_until: Optional[datetime] = None
         self._external_api_health_cached_status: Optional[str] = None
         self._external_api_health_cached_until: Optional[datetime] = None
@@ -149,6 +150,9 @@ class AirQualityService:
         
         # Получение данных из внешнего API
         try:
+            if self._is_open_meteo_rate_limited():
+                raise Exception("Open-Meteo rate limit active")
+
             params = {
                 "latitude": lat,
                 "longitude": lon,
@@ -174,6 +178,9 @@ class AirQualityService:
                         ServiceType.OPEN_METEO,
                         api_request
                     )
+                    if api_response.status_code == 429:
+                        self._record_open_meteo_rate_limit(api_response.headers)
+                        raise Exception("Open-Meteo rate limit active")
                     api_data = api_response.data
                 except Exception as pool_error:
                     if not self._is_pool_saturation_error(pool_error):
@@ -184,13 +191,20 @@ class AirQualityService:
                         pool_error,
                     )
                     response = await self.client.get(self.base_url, params=params)
+                    if response.status_code == 429:
+                        self._record_open_meteo_rate_limit(response.headers)
+                        raise Exception("Open-Meteo rate limit active")
                     response.raise_for_status()
                     api_data = response.json()
             else:
                 response = await self.client.get(self.base_url, params=params)
+                if response.status_code == 429:
+                    self._record_open_meteo_rate_limit(response.headers)
+                    raise Exception("Open-Meteo rate limit active")
                 response.raise_for_status()
                 api_data = response.json()
             
+            self._open_meteo_rate_limited_until = None
             processed_data = await self._process_current_data(api_data, lat, lon)
             
             # Кэширование результата с обработкой сбоев
@@ -209,6 +223,8 @@ class AirQualityService:
             logger.error(f"HTTP error fetching air quality data: {e}")
             raise Exception("Внешний сервис временно недоступен")
         except Exception as e:
+            if "rate limit" in str(e).lower() or "429" in str(e):
+                raise
             logger.error(f"Unexpected error processing air quality data: {e}")
             raise Exception("Ошибка обработки данных о качестве воздуха")
     
@@ -219,6 +235,9 @@ class AirQualityService:
         Возвращает список данных с почасовым прогнозом.
         """
         try:
+            if self._is_open_meteo_rate_limited():
+                raise Exception("Open-Meteo rate limit active")
+
             forecast_hours = max(1, min(int(hours), 168))
             forecast_days = max(1, min(7, math.ceil(forecast_hours / 24)))
 
@@ -252,6 +271,9 @@ class AirQualityService:
                         ServiceType.OPEN_METEO,
                         api_request
                     )
+                    if api_response.status_code == 429:
+                        self._record_open_meteo_rate_limit(api_response.headers)
+                        raise Exception("Open-Meteo rate limit active")
                     api_data = api_response.data
                 except Exception as pool_error:
                     if not self._is_pool_saturation_error(pool_error):
@@ -262,13 +284,20 @@ class AirQualityService:
                         pool_error,
                     )
                     response = await self.client.get(self.base_url, params=params)
+                    if response.status_code == 429:
+                        self._record_open_meteo_rate_limit(response.headers)
+                        raise Exception("Open-Meteo rate limit active")
                     response.raise_for_status()
                     api_data = response.json()
             else:
                 response = await self.client.get(self.base_url, params=params)
+                if response.status_code == 429:
+                    self._record_open_meteo_rate_limit(response.headers)
+                    raise Exception("Open-Meteo rate limit active")
                 response.raise_for_status()
                 api_data = response.json()
             
+            self._open_meteo_rate_limited_until = None
             return await self._process_forecast_data(api_data, lat, lon, max_hours=forecast_hours)
             
         except httpx.RequestError as e:
@@ -278,6 +307,8 @@ class AirQualityService:
             logger.error(f"HTTP error fetching forecast data: {e}")
             raise Exception("Внешний сервис прогноза временно недоступен")
         except Exception as e:
+            if "rate limit" in str(e).lower() or "429" in str(e):
+                raise
             logger.error(f"Unexpected error processing forecast data: {e}")
             raise Exception("Ошибка обработки прогноза качества воздуха")
     
@@ -807,6 +838,19 @@ class AirQualityService:
     def _cache_external_api_health_status(self, status: str, ttl_seconds: int) -> None:
         self._external_api_health_cached_status = status
         self._external_api_health_cached_until = datetime.now(timezone.utc) + timedelta(seconds=ttl_seconds)
+
+    def _record_open_meteo_rate_limit(self, headers: Optional[Dict[str, Any]] = None) -> None:
+        self._open_meteo_rate_limited_until = self._derive_rate_limit_cooldown_until(headers)
+        logger.warning(
+            "Open-Meteo request path hit provider rate limit; cooling down until %s",
+            self._open_meteo_rate_limited_until.isoformat(),
+        )
+
+    def _is_open_meteo_rate_limited(self) -> bool:
+        return (
+            self._open_meteo_rate_limited_until is not None
+            and datetime.now(timezone.utc) < self._open_meteo_rate_limited_until
+        )
     
     def _log_external_request(self, url: str, has_coordinates: bool = False):
         """

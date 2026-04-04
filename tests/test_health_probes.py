@@ -132,3 +132,49 @@ async def test_open_meteo_pool_health_probe_reuses_recent_result_within_interval
     assert first is True
     assert second is True
     assert get_mock.await_count == 1
+
+
+@pytest.mark.asyncio
+async def test_current_air_quality_respects_open_meteo_rate_limit_cooldown():
+    service = AirQualityService()
+    service.use_connection_pool = True
+    service.cache_manager.get = AsyncMock(return_value=None)
+    service.cache_manager.set = AsyncMock(return_value=True)
+
+    with patch("services.get_connection_pool_manager") as pool_manager_mock:
+        pool_manager_mock.return_value.execute_request = AsyncMock(
+            return_value=APIResponse(
+                status_code=429,
+                data={"error": "rate limited"},
+                headers={"Retry-After": "120"},
+                response_time=0.1,
+            )
+        )
+        with pytest.raises(Exception, match="rate limit"):
+            await service.get_current_air_quality(55.7558, 37.6176)
+        with pytest.raises(Exception, match="rate limit"):
+            await service.get_current_air_quality(55.7558, 37.6176)
+
+    assert pool_manager_mock.return_value.execute_request.await_count == 1
+
+
+@pytest.mark.asyncio
+async def test_forecast_air_quality_respects_open_meteo_rate_limit_cooldown():
+    service = AirQualityService()
+    service.use_connection_pool = True
+
+    with patch("services.get_connection_pool_manager") as pool_manager_mock:
+        pool_manager_mock.return_value.execute_request = AsyncMock(
+            return_value=APIResponse(
+                status_code=429,
+                data={"error": "rate limited"},
+                headers={"Retry-After": "120"},
+                response_time=0.1,
+            )
+        )
+        with pytest.raises(Exception, match="rate limit"):
+            await service.get_forecast_air_quality(55.7558, 37.6176, hours=24)
+        with pytest.raises(Exception, match="rate limit"):
+            await service.get_forecast_air_quality(55.7558, 37.6176, hours=24)
+
+    assert pool_manager_mock.return_value.execute_request.await_count == 1
