@@ -109,6 +109,62 @@ async def test_stage0_ssr_city_page_renders_with_stubbed_backend():
 
 
 @pytest.mark.asyncio
+async def test_stage0_ssr_city_page_renders_data_status_notice_for_fallback_data():
+    original_current = web_app.air_service.get_current_data
+    original_forecast = web_app.air_service.get_forecast_data
+    original_history = web_app.air_service.get_history_data
+    original_trends = web_app.air_service.get_trends_data
+    original_health = web_app.air_service.check_health
+
+    async def _fake_current(lat: float, lon: float):
+        return {
+            "aqi": {"value": 53, "category": "Умеренное", "color": "#FFD54A"},
+            "nmu_risk": "low",
+            "pollutants": {"pm2_5": 18.2, "pm10": 27.4, "no2": 10.1, "so2": 4.0, "o3": 48.2},
+            "metadata": {
+                "data_source": "fallback",
+                "freshness": "stale",
+                "confidence": 0.74,
+                "fallback_used": True,
+                "cache_age_seconds": 420,
+            },
+        }
+
+    async def _fake_forecast(lat: float, lon: float, hours: int = 24):
+        return [{"aqi": {"value": 55}, "timestamp": "2026-03-25T13:00:00+00:00"}]
+
+    async def _fake_history(**kwargs):
+        return {"items": [{"aqi": 52, "metadata": {"confidence": 0.77}}], "total": 1, "range": "24h"}
+
+    async def _fake_trends(**kwargs):
+        return {"summary": "trend summary", "points": []}
+
+    async def _fake_health():
+        return {"status": "degraded", "public_status": "degraded", "reachable": True}
+
+    web_app.air_service.get_current_data = _fake_current
+    web_app.air_service.get_forecast_data = _fake_forecast
+    web_app.air_service.get_history_data = _fake_history
+    web_app.air_service.get_trends_data = _fake_trends
+    web_app.air_service.check_health = _fake_health
+    try:
+        transport = httpx.ASGITransport(app=web_app.app)
+        async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
+            response = await client.get("/city/moscow")
+    finally:
+        web_app.air_service.get_current_data = original_current
+        web_app.air_service.get_forecast_data = original_forecast
+        web_app.air_service.get_history_data = original_history
+        web_app.air_service.get_trends_data = original_trends
+        web_app.air_service.check_health = original_health
+
+    assert response.status_code == 200
+    html = response.text
+    assert 'data-testid="data-status-notice"' in html
+    assert "Данные временно ограничены" in html
+
+
+@pytest.mark.asyncio
 async def test_stage0_ssr_custom_form_renders():
     transport = httpx.ASGITransport(app=web_app.app)
     async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:

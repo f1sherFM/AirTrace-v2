@@ -80,6 +80,70 @@ def build_explainability(payload: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def _format_cache_age_label(cache_age_seconds: Any) -> Optional[str]:
+    if cache_age_seconds is None:
+        return None
+    try:
+        total_seconds = max(0, int(float(cache_age_seconds)))
+    except (TypeError, ValueError):
+        return None
+
+    if total_seconds < 60:
+        return f"кэш обновлялся {total_seconds} сек. назад"
+
+    total_minutes = total_seconds // 60
+    if total_minutes < 60:
+        return f"кэш обновлялся {total_minutes} мин. назад"
+
+    total_hours = total_minutes // 60
+    return f"кэш обновлялся {total_hours} ч. назад"
+
+
+def build_data_status_notice(payload: dict[str, Any]) -> Optional[dict[str, str]]:
+    explainability = build_explainability(payload)
+    source = str(explainability.get("source") or "unknown").strip().lower()
+    freshness = str(explainability.get("freshness") or "unknown").strip().lower()
+    confidence = float(explainability.get("confidence") or 0.0)
+    fallback_used = bool(explainability.get("fallback_used"))
+    cache_age_label = _format_cache_age_label(explainability.get("cache_age_seconds"))
+
+    if freshness == "expired":
+        detail = "Источник временно ограничен, поэтому страница показывает более старые данные."
+        if cache_age_label:
+            detail = f"{detail} Последнее сохранение: {cache_age_label}."
+        return {
+            "tone": "critical",
+            "title": "Данные заметно устарели",
+            "body": detail,
+        }
+
+    if fallback_used or source == "fallback" or freshness == "stale":
+        detail = "Внешний источник сейчас отвечает нестабильно, поэтому показаны последние сохранённые данные."
+        if cache_age_label:
+            detail = f"{detail} Последнее сохранение: {cache_age_label}."
+        return {
+            "tone": "warning",
+            "title": "Данные временно ограничены",
+            "body": detail,
+        }
+
+    if freshness == "unknown" or source == "unknown":
+        return {
+            "tone": "info",
+            "title": "Источник данных уточняется",
+            "body": "Страница работает, но происхождение и свежесть текущих данных пока подтверждены не полностью.",
+        }
+
+    if confidence < 0.5:
+        return {
+            "tone": "info",
+            "title": "Данные доступны, но уверенность ниже обычной",
+            "body": "Показатели получены успешно, но система оценивает их надёжность ниже стандартного уровня.",
+        }
+
+    return None
+
+
 def normalize_current_payload(payload: dict[str, Any], *, lat: float, lon: float) -> dict[str, Any]:
     normalized = dict(payload or {})
     raw_aqi = normalized.get("aqi")
@@ -206,6 +270,7 @@ async def build_city_page_context(
     forecast_groups = group_forecast_by_day(forecast)
     history_items = normalize_history_payload((history_raw or {}).get("items", [])[:12])
     explainability = build_explainability(current)
+    data_status_notice = build_data_status_notice(current)
     return {
         "request": request,
         "cities": get_cities_mapping(),
@@ -219,6 +284,7 @@ async def build_city_page_context(
         "trends": trends_raw,
         "trend_summary": (trends_raw or {}).get("summary"),
         "explainability": explainability,
+        "data_status_notice": data_status_notice,
         **health_context,
         "title": f"AirTrace RU - {city['name']}",
         "is_custom": is_custom,
