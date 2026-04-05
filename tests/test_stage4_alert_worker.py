@@ -156,7 +156,7 @@ async def test_stage4_alert_worker_respects_quiet_hours_and_cooldown():
         )
     )
 
-    current_time = datetime(2026, 3, 26, 12, 5, tzinfo=timezone.utc)
+    current_time = datetime(2026, 3, 26, 9, 5, tzinfo=timezone.utc)
 
     async def fetch_current_data(lat: float, lon: float):
         return _sample_air_quality(lat=lat, lon=lon, aqi_value=170, nmu_risk="high")
@@ -167,7 +167,7 @@ async def test_stage4_alert_worker_respects_quiet_hours_and_cooldown():
         now_provider=lambda: current_time,
     )
     first_result = await worker.run_cycle()
-    current_time = datetime(2026, 3, 26, 12, 10, tzinfo=timezone.utc)
+    current_time = datetime(2026, 3, 26, 9, 10, tzinfo=timezone.utc)
     second_result = await worker.run_cycle()
 
     assert first_result.triggered_alerts == 1

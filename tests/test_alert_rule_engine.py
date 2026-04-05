@@ -49,6 +49,25 @@ def test_alert_rule_respects_quiet_hours():
     assert "quiet_hours" in events[0].reasons
 
 
+def test_alert_rule_quiet_hours_use_moscow_time():
+    engine = AlertRuleEngine()
+    engine.create_rule(
+        AlertRuleCreate(
+            name="Moscow lunch quiet hours",
+            aqi_threshold=100,
+            cooldown_minutes=30,
+            quiet_hours_start=12,
+            quiet_hours_end=13,
+        )
+    )
+    quiet_time = datetime(2026, 2, 16, 9, 30, tzinfo=timezone.utc)
+    events = engine.evaluate(aqi=180, nmu_risk="high", now=quiet_time)
+
+    assert len(events) == 1
+    assert events[0].suppressed is True
+    assert "quiet_hours" in events[0].reasons
+
+
 def test_alert_rule_nmu_trigger():
     engine = AlertRuleEngine()
     engine.create_rule(

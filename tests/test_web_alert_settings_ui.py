@@ -57,6 +57,7 @@ async def test_alert_settings_page_renders_russian_ui():
     assert "Текущие подписки" in html
     assert "Telegram chat_id" in html
     assert "AQI = 0" in html
+    assert "МСК" in html
 
 
 @pytest.mark.asyncio

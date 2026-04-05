@@ -29,6 +29,7 @@ from schemas import (
     AlertSubscriptionUpdate,
     DeliveryResult,
 )
+from utils import MOSCOW_TZ
 
 logger = logging.getLogger(__name__)
 
@@ -516,6 +517,7 @@ class AlertSubscriptionService:
         now: Optional[datetime] = None,
     ) -> list[AlertEvent]:
         now_utc = (now or _utc_now()).astimezone(timezone.utc)
+        now_msk = now_utc.astimezone(MOSCOW_TZ)
         resolved_city_code = self._normalize_city_code(city_code) or self._city_code_for_coordinates(lat=lat, lon=lon)
         subscriptions = await self._subscription_repository.list_applicable_subscriptions(
             city_code=resolved_city_code,
@@ -535,7 +537,7 @@ class AlertSubscriptionService:
                 continue
 
             severity = AlertRuleEngine._severity(aqi, normalized_nmu)
-            if AlertRuleEngine._is_in_quiet_hours(now_utc, subscription.quiet_hours_start, subscription.quiet_hours_end):
+            if AlertRuleEngine._is_in_quiet_hours(now_msk, subscription.quiet_hours_start, subscription.quiet_hours_end):
                 logger.info(
                     "Alert suppressed by quiet hours: subscription_id=%s name=%s reasons=%s",
                     subscription.id,

@@ -8,6 +8,7 @@ from types import SimpleNamespace
 from typing import Any, Optional
 
 from core.settings import get_cities_mapping
+from utils import MOSCOW_TZ, format_russian_timestamp
 
 from .service import WebAppService
 
@@ -177,7 +178,12 @@ def normalize_history_payload(items: list[dict[str, Any]]) -> list[dict[str, Any
     normalized: list[dict[str, Any]] = []
     for item in items or []:
         record = dict(item)
-        record.setdefault("timestamp", record.get("snapshot_hour_utc", _utc_now_iso()))
+        raw_timestamp = record.get("timestamp", record.get("snapshot_hour_utc", _utc_now_iso()))
+        try:
+            parsed_timestamp = datetime.fromisoformat(str(raw_timestamp).replace("Z", "+00:00"))
+            record["timestamp"] = format_russian_timestamp(parsed_timestamp)
+        except (TypeError, ValueError, AttributeError):
+            record["timestamp"] = str(raw_timestamp)
         record.setdefault("aqi", 0)
         record.setdefault("anomaly_detected", False)
         record.setdefault("anomaly_type", None)
@@ -188,7 +194,7 @@ def normalize_history_payload(items: list[dict[str, Any]]) -> list[dict[str, Any
 
 def _format_forecast_day_label(timestamp: str) -> str:
     try:
-        dt = datetime.fromisoformat(timestamp.replace("Z", "+00:00"))
+        dt = datetime.fromisoformat(timestamp.replace("Z", "+00:00")).astimezone(MOSCOW_TZ)
         month = _RUSSIAN_MONTHS.get(dt.month, str(dt.month))
         weekday = _RUSSIAN_WEEKDAYS.get(dt.weekday(), "")
         return f"{dt.day} {month}, {weekday}"
@@ -204,7 +210,7 @@ def group_forecast_by_day(items: list[dict[str, Any]]) -> list[dict[str, Any]]:
     for item in items or []:
         timestamp = item.get("timestamp")
         try:
-            dt = datetime.fromisoformat(str(timestamp).replace("Z", "+00:00"))
+            dt = datetime.fromisoformat(str(timestamp).replace("Z", "+00:00")).astimezone(MOSCOW_TZ)
             day_key = dt.date().isoformat()
         except (TypeError, ValueError, AttributeError):
             day_key = "unknown"
@@ -422,6 +428,10 @@ async def build_alerts_page_context(
         {
             "title": "Cooldown не равен расписанию",
             "body": "Cooldown задаёт минимальный интервал между повторными отправками. Он не означает, что сообщение будет приходить каждые N минут.",
+        },
+        {
+            "title": "Тихие часы по Москве",
+            "body": "Поля «Тихий час» считаются по московскому времени (МСК), даже если вы находитесь в другом часовом поясе.",
         },
         {
             "title": "Как получить chat_id",

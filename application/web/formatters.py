@@ -5,11 +5,13 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Any, Optional
 
+from utils import MOSCOW_TZ
+
 
 def format_time(timestamp: str) -> str:
     try:
         dt = datetime.fromisoformat(timestamp.replace("Z", "+00:00"))
-        return dt.strftime("%H:%M")
+        return dt.astimezone(MOSCOW_TZ).strftime("%H:%M МСК")
     except (TypeError, ValueError, AttributeError):
         return "--:--"
 

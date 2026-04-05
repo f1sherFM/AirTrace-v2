@@ -232,9 +232,9 @@ class TestRussianLocalizationProperty:
         formatted_time = format_russian_timestamp(timestamp)
         
         # Проверяем формат даты (DD.MM.YYYY HH:MM UTC)
-        date_pattern = r'\d{2}\.\d{2}\.\d{4} \d{2}:\d{2} UTC'
+        date_pattern = r'\d{2}\.\d{2}\.\d{4} \d{2}:\d{2} МСК'
         assert re.match(date_pattern, formatted_time), \
-            f"Russian timestamp should match DD.MM.YYYY HH:MM UTC format, got '{formatted_time}'"
+            f"Russian timestamp should match DD.MM.YYYY HH:MM МСК format, got '{formatted_time}'"
         
         # Проверяем, что используется точка как разделитель даты (русский стандарт)
         assert '.' in formatted_time[:10], \

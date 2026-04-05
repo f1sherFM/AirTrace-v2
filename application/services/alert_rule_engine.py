@@ -6,6 +6,7 @@ from datetime import datetime, timedelta, timezone
 from typing import Dict, List, Optional
 
 from schemas import AlertEvent, AlertRule, AlertRuleCreate, AlertRuleUpdate, AlertSeverity
+from utils import MOSCOW_TZ
 
 
 class AlertRuleEngine:
@@ -73,6 +74,7 @@ class AlertRuleEngine:
         now: Optional[datetime] = None,
     ) -> List[AlertEvent]:
         now_utc = (now or datetime.now(timezone.utc)).astimezone(timezone.utc)
+        now_msk = now_utc.astimezone(MOSCOW_TZ)
         events: List[AlertEvent] = []
         normalized_nmu = (nmu_risk or "").lower()
 
@@ -88,7 +90,7 @@ class AlertRuleEngine:
             if not reasons:
                 continue
 
-            if self._is_in_quiet_hours(now_utc, rule.quiet_hours_start, rule.quiet_hours_end):
+            if self._is_in_quiet_hours(now_msk, rule.quiet_hours_start, rule.quiet_hours_end):
                 events.append(
                     AlertEvent(
                         rule_id=rule.id,
