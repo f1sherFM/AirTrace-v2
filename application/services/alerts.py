@@ -46,6 +46,54 @@ def _request_fingerprint(payload: dict[str, object]) -> str:
     return hashlib.sha256(raw.encode("utf-8")).hexdigest()
 
 
+_SEVERITY_LABELS = {
+    "info": "информационное",
+    "warning": "предупреждение",
+    "critical": "критическое",
+}
+
+_NMU_LABELS = {
+    "low": "низкий",
+    "medium": "средний",
+    "high": "высокий",
+    "critical": "критический",
+    "unknown": "не указан",
+}
+
+
+def _translate_alert_severity(value: str) -> str:
+    return _SEVERITY_LABELS.get((value or "").strip().lower(), value or "неизвестно")
+
+
+def _format_alert_reason(reason: str) -> str:
+    normalized = (reason or "").strip().lower()
+    if normalized.startswith("aqi>="):
+        threshold = reason.split(">=", 1)[1].strip()
+        return f"AQI достиг или превысил порог {threshold}"
+    if normalized.startswith("nmu="):
+        level = reason.split("=", 1)[1].strip().lower()
+        return f"уровень НМУ: {_NMU_LABELS.get(level, level or 'не указан')}"
+    if normalized == "cooldown":
+        return "сработал cooldown между повторными уведомлениями"
+    if normalized == "quiet_hours":
+        return "сейчас действует тихий период"
+    return reason
+
+
+def _format_alert_message(*, index: int, event: AlertEvent, aqi: int, nmu_risk: Optional[str]) -> str:
+    severity_label = _translate_alert_severity(event.severity)
+    nmu_label = _NMU_LABELS.get((nmu_risk or "").strip().lower(), nmu_risk or "не указан")
+    reason_lines = "\n".join(f"• {_format_alert_reason(reason)}" for reason in event.reasons) or "• причина не уточнена"
+    return (
+        f"Уведомление AirTrace #{index}\n"
+        f"Правило: {event.rule_name}\n"
+        f"AQI сейчас: {aqi}\n"
+        f"НМУ: {nmu_label}\n"
+        f"Серьёзность: {severity_label}\n"
+        f"Почему сработало:\n{reason_lines}"
+    )
+
+
 class AlertSubscriptionService:
     def __init__(
         self,
@@ -565,13 +613,11 @@ class AlertSubscriptionService:
             chat_id = chat_id_override or subscription.chat_id
             if not chat_id:
                 continue
-            text = (
-                f"AirTrace Alert #{index}\n"
-                f"Rule: {event.rule_name}\n"
-                f"AQI: {aqi}\n"
-                f"NMU: {nmu_risk}\n"
-                f"Severity: {event.severity}\n"
-                f"Reasons: {', '.join(event.reasons)}"
+            text = _format_alert_message(
+                index=index,
+                event=event,
+                aqi=aqi,
+                nmu_risk=nmu_risk,
             )
             event_id = f"{event.rule_id}:{int(event.triggered_at.timestamp())}"
             raw_result = await self._telegram_delivery_service.send_message(

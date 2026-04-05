@@ -31,6 +31,13 @@ from unified_weather_service import unified_weather_service
 router = APIRouter()
 
 
+_DIGEST_TREND_LABELS = {
+    "stable": "стабильный",
+    "improving": "улучшается",
+    "worsening": "ухудшается",
+}
+
+
 @router.post("/alerts/rules", response_model=AlertRule)
 async def create_alert_rule(payload: AlertRuleCreate):
     try:
@@ -222,11 +229,12 @@ async def deliver_daily_digest(
     lon: Optional[float] = Query(None, ge=-180, le=180),
 ):
     digest = await _build_daily_digest(city=city, lat=lat, lon=lon)
+    trend_label = _DIGEST_TREND_LABELS.get((digest.trend or "").strip().lower(), digest.trend)
     message = (
-        f"AirTrace Daily Digest\n"
+        f"Дайджест AirTrace за день\n"
         f"Локация: {digest.location_label}\n"
         f"Период: {digest.period}\n"
-        f"Тренд: {digest.trend}\n"
+        f"Тренд: {trend_label}\n"
         f"Предупреждения: {'; '.join(digest.top_warnings)}\n"
         f"Рекомендации: {'; '.join(digest.recommended_actions)}"
     )
