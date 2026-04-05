@@ -94,10 +94,10 @@ async def test_stage4_delivery_service_persists_attempts_and_cooldown_state():
         assert telegram_service.sent[0]["chat_id"] == "777"
         sent_text = telegram_service.sent[0]["text"] or ""
         assert "Уведомление AirTrace #1" in sent_text
-        assert "Правило: AQI>=150" in sent_text
+        assert "Название: AQI>=150" in sent_text
         assert "AQI сейчас: 170" in sent_text
         assert "НМУ: высокий" in sent_text
-        assert "Тип сигнала:" in sent_text
+        assert "Тип сигнала: предупреждающий." in sent_text
         assert "Почему сработало:" in sent_text
         assert suppressed[0].suppressed is True
         assert "cooldown" in suppressed[0].reasons

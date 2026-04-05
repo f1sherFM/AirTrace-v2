@@ -96,10 +96,10 @@ def _format_alert_message(*, index: int, event: AlertEvent, aqi: int, nmu_risk: 
     reason_lines = "\n".join(f"• {_format_alert_reason(reason)}" for reason in event.reasons) or "• причина не уточнена"
     return (
         f"Уведомление AirTrace #{index}\n"
-        f"Правило: {event.rule_name}\n"
+        f"Название: {event.rule_name}\n"
         f"AQI сейчас: {aqi}\n"
         f"НМУ: {nmu_label}\n"
-        f"Тип сигнала: {severity_label}\n"
+        f"Тип сигнала: {severity_label}.\n"
         f"Почему сработало:\n{reason_lines}"
     )
 
