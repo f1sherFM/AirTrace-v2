@@ -97,7 +97,7 @@ async def test_stage4_delivery_service_persists_attempts_and_cooldown_state():
         assert "Правило: AQI>=150" in sent_text
         assert "AQI сейчас: 170" in sent_text
         assert "НМУ: высокий" in sent_text
-        assert "Серьёзность:" in sent_text
+        assert "Тип сигнала:" in sent_text
         assert "Почему сработало:" in sent_text
         assert suppressed[0].suppressed is True
         assert "cooldown" in suppressed[0].reasons

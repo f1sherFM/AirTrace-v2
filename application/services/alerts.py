@@ -47,9 +47,9 @@ def _request_fingerprint(payload: dict[str, object]) -> str:
 
 
 _SEVERITY_LABELS = {
-    "info": "информационное",
-    "warning": "предупреждение",
-    "critical": "критическое",
+    "info": "информационный",
+    "warning": "предупреждающий",
+    "critical": "критический",
 }
 
 _NMU_LABELS = {
@@ -61,8 +61,17 @@ _NMU_LABELS = {
 }
 
 
-def _translate_alert_severity(value: str) -> str:
-    return _SEVERITY_LABELS.get((value or "").strip().lower(), value or "неизвестно")
+def _normalize_alert_severity(value: object) -> str:
+    raw = getattr(value, "value", value)
+    normalized = str(raw or "").strip().lower()
+    if normalized.startswith("alertseverity."):
+        normalized = normalized.split(".", 1)[1]
+    return normalized
+
+
+def _translate_alert_severity(value: object) -> str:
+    normalized = _normalize_alert_severity(value)
+    return _SEVERITY_LABELS.get(normalized, "неизвестный")
 
 
 def _format_alert_reason(reason: str) -> str:
@@ -89,7 +98,7 @@ def _format_alert_message(*, index: int, event: AlertEvent, aqi: int, nmu_risk: 
         f"Правило: {event.rule_name}\n"
         f"AQI сейчас: {aqi}\n"
         f"НМУ: {nmu_label}\n"
-        f"Серьёзность: {severity_label}\n"
+        f"Тип сигнала: {severity_label}\n"
         f"Почему сработало:\n{reason_lines}"
     )
 
