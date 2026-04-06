@@ -127,6 +127,16 @@ def _point_from_daily(record: DailyAggregateRecord) -> TrendPoint:
     )
 
 
+def _dedupe_hourly_snapshot_records(records: list) -> list:
+    latest_by_hour: dict[datetime, object] = {}
+    for record in records:
+        hour_utc = record.snapshot_hour_utc.astimezone(timezone.utc).replace(minute=0, second=0, microsecond=0)
+        existing = latest_by_hour.get(hour_utc)
+        if existing is None or record.ingested_at >= existing.ingested_at:
+            latest_by_hour[hour_utc] = record
+    return [latest_by_hour[key] for key in sorted(latest_by_hour)]
+
+
 async def _query_daily_aggregates(
     *,
     start_utc: datetime,
@@ -167,6 +177,7 @@ async def _query_daily_aggregates(
 
     aggregates: list[DailyAggregateRecord] = []
     for (day_utc, city_code, latitude, longitude), records in sorted(grouped.items()):
+        records = _dedupe_hourly_snapshot_records(records)
         aqi_values = [record.aqi for record in records]
         dominant_source = records[-1].data_source
         aggregates.append(

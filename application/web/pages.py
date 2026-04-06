@@ -232,6 +232,18 @@ def group_forecast_by_day(items: list[dict[str, Any]]) -> list[dict[str, Any]]:
     return groups
 
 
+async def _safe_trends_data(service: WebAppService, **kwargs: Any) -> dict[str, Any]:
+    try:
+        return await service.get_trends_data(**kwargs)
+    except Exception as exc:
+        return {
+            "summary": None,
+            "points": [],
+            "unavailable": True,
+            "error": str(exc),
+        }
+
+
 async def build_index_context(*, request: Any, service: WebAppService) -> dict[str, Any]:
     health_context = await _health_context(service)
     return {
@@ -263,7 +275,8 @@ async def build_city_page_context(
             range_preset="24h",
             page_size=48,
         ),
-        service.get_trends_data(
+        _safe_trends_data(
+            service,
             city_key="" if is_custom else city_key,
             lat=lat if is_custom else None,
             lon=lon if is_custom else None,

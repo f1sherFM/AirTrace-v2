@@ -173,6 +173,35 @@ async def test_v2_trends_empty_state_returns_insufficient_data():
 
 
 @pytest.mark.asyncio
+async def test_v2_trends_deduplicates_hourly_snapshots_before_daily_aggregation():
+    store = InMemoryHistoricalSnapshotStore()
+    hour = datetime.now(timezone.utc).replace(minute=0, second=0, microsecond=0)
+    for idx in range(25):
+        store._records[f"duplicate-{idx}"] = HistoricalSnapshotRecord(
+            snapshot_hour_utc=hour,
+            city_code="moscow",
+            latitude=55.7558,
+            longitude=37.6176,
+            aqi=80 + (idx % 3),
+            pollutants=PollutantData(pm2_5=21.0, pm10=38.0, no2=24.0, so2=9.0, o3=70.0),
+            data_source=DataSource.LIVE,
+            freshness=HistoryFreshness.FRESH,
+            confidence=0.93,
+            ingested_at=hour + timedelta(seconds=idx),
+        )
+    main.history_snapshot_store = store
+
+    transport = httpx.ASGITransport(app=main.app)
+    async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
+        response = await client.get("/v2/trends?range=7d&city=moscow")
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["points"][0]["sample_count"] == 1
+    assert payload["points"][0]["aqi_avg"] == 80 + (24 % 3)
+
+
+@pytest.mark.asyncio
 async def test_v2_error_contract_for_validation_and_service_unavailable():
     transport = httpx.ASGITransport(app=main.app)
     async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:

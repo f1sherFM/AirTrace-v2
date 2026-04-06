@@ -165,6 +165,54 @@ async def test_stage0_ssr_city_page_renders_data_status_notice_for_fallback_data
 
 
 @pytest.mark.asyncio
+async def test_stage0_ssr_city_page_tolerates_trends_backend_failure():
+    original_current = web_app.air_service.get_current_data
+    original_forecast = web_app.air_service.get_forecast_data
+    original_history = web_app.air_service.get_history_data
+    original_trends = web_app.air_service.get_trends_data
+    original_health = web_app.air_service.check_health
+
+    async def _fake_current(lat: float, lon: float):
+        return {
+            "aqi": {"value": 39, "category": "РҐРѕСЂРѕС€РµРµ", "color": "#00E400"},
+            "nmu_risk": "low",
+            "pollutants": {"pm2_5": 19.7, "pm10": 27.5, "no2": 2.5, "so2": 2.6, "o3": 64.0},
+            "metadata": {"confidence": 0.9},
+        }
+
+    async def _fake_forecast(lat: float, lon: float, hours: int = 24):
+        return [{"aqi": {"value": 40}, "timestamp": "2026-04-06T04:00:00+00:00"}]
+
+    async def _fake_history(**kwargs):
+        return {"items": [{"aqi": 39, "metadata": {"confidence": 0.9}}], "total": 1, "range": "24h"}
+
+    async def _fake_trends(**kwargs):
+        raise RuntimeError("trends temporarily unavailable")
+
+    async def _fake_health():
+        return {"status": "degraded", "public_status": "degraded", "reachable": True}
+
+    web_app.air_service.get_current_data = _fake_current
+    web_app.air_service.get_forecast_data = _fake_forecast
+    web_app.air_service.get_history_data = _fake_history
+    web_app.air_service.get_trends_data = _fake_trends
+    web_app.air_service.check_health = _fake_health
+    try:
+        transport = httpx.ASGITransport(app=web_app.app)
+        async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
+            response = await client.get("/city/novosibirsk")
+    finally:
+        web_app.air_service.get_current_data = original_current
+        web_app.air_service.get_forecast_data = original_forecast
+        web_app.air_service.get_history_data = original_history
+        web_app.air_service.get_trends_data = original_trends
+        web_app.air_service.check_health = original_health
+
+    assert response.status_code == 200
+    assert "AirTrace RU" in response.text
+
+
+@pytest.mark.asyncio
 async def test_stage0_ssr_custom_form_renders():
     transport = httpx.ASGITransport(app=web_app.app)
     async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:

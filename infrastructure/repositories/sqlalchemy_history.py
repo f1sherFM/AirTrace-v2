@@ -266,6 +266,16 @@ class SQLAlchemyHistoryRepository(_SQLAlchemyRepositoryBase, HistoryRepository):
 
 
 class SQLAlchemyAggregationRepository(_SQLAlchemyRepositoryBase, AggregationRepository):
+    @staticmethod
+    def _dedupe_hourly_records(records: list[HistoricalSnapshotRecord]) -> list[HistoricalSnapshotRecord]:
+        latest_by_hour: dict[datetime, HistoricalSnapshotRecord] = {}
+        for record in records:
+            hour_utc = record.snapshot_hour_utc.astimezone(timezone.utc).replace(minute=0, second=0, microsecond=0)
+            existing = latest_by_hour.get(hour_utc)
+            if existing is None or record.ingested_at >= existing.ingested_at:
+                latest_by_hour[hour_utc] = record
+        return [latest_by_hour[key] for key in sorted(latest_by_hour)]
+
     async def query_daily_aggregates(
         self,
         *,
@@ -294,6 +304,7 @@ class SQLAlchemyAggregationRepository(_SQLAlchemyRepositoryBase, AggregationRepo
 
         aggregates: list[DailyAggregateRecord] = []
         for (day_utc, record_city_code, latitude, longitude), records in sorted(grouped.items(), reverse=True):
+            records = self._dedupe_hourly_records(records)
             aqi_values = [record.aqi for record in records]
             source_counts = Counter(record.data_source for record in records)
             dominant_source = source_counts.most_common(1)[0][0]

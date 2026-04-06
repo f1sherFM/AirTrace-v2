@@ -301,7 +301,11 @@ class WebAppService:
         message = response.text
         try:
             payload = response.json()
-            message = payload.get("message") or payload.get("detail") or message
+            backend_error = payload.get("error") if isinstance(payload, dict) else None
+            if isinstance(backend_error, dict):
+                message = backend_error.get("message") or backend_error.get("code") or message
+            elif isinstance(payload, dict):
+                message = payload.get("message") or payload.get("detail") or message
         except ValueError:
             payload = None
         raise HTTPException(status_code=response.status_code, detail=message or "Alert backend request failed")
