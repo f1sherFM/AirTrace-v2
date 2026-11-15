@@ -1,55 +1,252 @@
 {% extends "base.html" %}
 
-{% block title %}{{ title }} — AirTrace v3{% endblock %}
-{% block location_display %}Сравнение качества воздуха в городах{% endblock %}
+{% block title %}{{ title }} — AirTrace v3.2{% endblock %}
+{% block location_display %}Мульти-сравнение качества воздуха и прогнозов{% endblock %}
 
 {% block content %}
-<section class="glass rounded-3xl p-6 md:p-8">
-    <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-6">
-        <div>
-            <h2 class="text-2xl font-bold flex items-center gap-2">
-                <i data-lucide="columns-2" class="w-6 h-6 text-teal-300"></i>
-                <span>Сравнение городов России</span>
-            </h2>
-            <p class="text-sm opacity-75 mt-1">Сравните до четырёх городов по текущему индексу AQI, чистоте атмосферы, трендам и надёжности данных.</p>
-        </div>
-        <form method="get" action="/compare" class="flex flex-col sm:flex-row gap-2">
-            <input 
-                type="text" 
-                name="cities" 
-                value="{{ selected_cities | join(',') }}" 
-                class="px-4 py-2 rounded-xl bg-white/10 border border-white/20 text-sm min-w-[280px] focus:outline-none focus:ring-2 focus:ring-sky-400" 
-                placeholder="moscow,spb,kazan,krasnoyarsk"
-            >
-            <button type="submit" class="btn-glass rounded-xl px-5 py-2 text-sm font-semibold">Сравнить</button>
-        </form>
-    </div>
-
-    <!-- Quick Presets -->
-    <div class="flex flex-wrap items-center gap-2 mb-8 text-xs">
-        <span class="opacity-60 mr-1">Быстрые сценарии:</span>
-        <a href="/compare?cities=moscow,spb,kazan" class="btn-glass rounded-lg px-2.5 py-1">Столицы: Москва • СПб • Казань</a>
-        <a href="/compare?cities=ekaterinburg,chelyabinsk,magnitogorsk" class="btn-glass rounded-lg px-2.5 py-1">Урал: Екб • Челябинск • Магнитогорск</a>
-        <a href="/compare?cities=krasnoyarsk,novosibirsk,omsk" class="btn-glass rounded-lg px-2.5 py-1">Сибирь: Красноярск • Новосибирск • Омск</a>
-        <a href="/compare?cities=sochi,krasnodar,rostov" class="btn-glass rounded-lg px-2.5 py-1">Юг: Сочи • Краснодар • Ростов</a>
-    </div>
-
-    <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-        {% for card in compare_cards %}
-        <article class="panel rounded-3xl p-6 flex flex-col justify-between hover:bg-white/10 transition-colors">
+<section class="space-y-8">
+    <!-- Header & Interactive City Selector -->
+    <div class="glass rounded-3xl p-6 md:p-8">
+        <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6 mb-6">
             <div>
+                <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-teal-500/20 text-teal-300 border border-teal-400/30 text-xs font-semibold uppercase tracking-wider mb-2">
+                    <i data-lucide="columns-2" class="w-3.5 h-3.5"></i>
+                    <span>Модуль сравнения AirTrace v3.2</span>
+                </div>
+                <h2 class="text-2xl md:text-3xl font-black text-white">Сравнение городов России</h2>
+                <p class="text-sm opacity-75 mt-1">Параллельный анализ качества воздуха, почасовых прогнозов, пригодности для спорта и рекомендаций для здоровья.</p>
+            </div>
+
+            <!-- Quick City Add Input & Controls -->
+            <form method="get" action="/compare" id="compare-form" class="flex flex-col sm:flex-row gap-2">
+                <div class="relative min-w-[260px] sm:min-w-[320px]">
+                    <input 
+                        type="text" 
+                        id="compare-search-input"
+                        autocomplete="off"
+                        class="w-full px-4 py-2.5 rounded-xl bg-white/10 border border-white/20 text-sm text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-teal-400" 
+                        placeholder="Добавить город (название или транслит)..."
+                    >
+                    <div id="compare-autocomplete-box" class="hidden absolute top-full left-0 right-0 mt-1.5 glass rounded-xl overflow-hidden shadow-2xl border border-white/20 z-50 max-h-60 overflow-y-auto"></div>
+                </div>
+                <input type="hidden" name="cities" id="compare-cities-hidden" value="{{ selected_cities | join(',') }}">
+                <button type="submit" class="btn-glass rounded-xl px-5 py-2.5 text-sm font-semibold flex items-center justify-center gap-1.5">
+                    <i data-lucide="refresh-cw" class="w-4 h-4 text-teal-300"></i>
+                    <span>Сравнить</span>
+                </button>
+            </form>
+        </div>
+
+        <!-- Currently Selected City Chips -->
+        <div class="flex flex-wrap items-center gap-2 mb-6">
+            <span class="text-xs opacity-60 mr-1 flex items-center gap-1">
+                <i data-lucide="map-pin" class="w-3.5 h-3.5"></i> Выбранные города (до 4):
+            </span>
+            {% for card in compare_cards %}
+            <div class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-semibold shadow-sm transition-all" style="background-color: {{ card.series_color }}20; border-color: {{ card.series_color }}50; color: #ffffff;">
+                <span class="w-2 h-2 rounded-full" style="background-color: {{ card.series_color }};"></span>
+                <span>{{ card.city.name }} (AQI {{ card.current.aqi.value }})</span>
+                {% if compare_cards|length > 1 %}
+                <button type="button" class="remove-compare-city-btn ml-1 opacity-60 hover:opacity-100 hover:text-rose-300" data-key="{{ card.city_key }}" title="Удалить из сравнения">✕</button>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+
+        <!-- Quick Scenarios & Presets -->
+        <div class="flex flex-wrap items-center gap-2 text-xs pt-4 border-t border-white/10">
+            <span class="opacity-60 mr-1">Готовые сравнения:</span>
+            <a href="/compare?cities=moscow,spb" class="btn-glass rounded-lg px-2.5 py-1">Две столицы: Москва • СПб</a>
+            <a href="/compare?cities=moscow,spb,kazan" class="btn-glass rounded-lg px-2.5 py-1">Москва • СПб • Казань</a>
+            <a href="/compare?cities=ekaterinburg,chelyabinsk,magnitogorsk" class="btn-glass rounded-lg px-2.5 py-1">Урал: Екб • Челябинск • Магнитогорск</a>
+            <a href="/compare?cities=krasnoyarsk,novosibirsk,omsk" class="btn-glass rounded-lg px-2.5 py-1">Сибирь: Красноярск • Новосибирск • Омск</a>
+            <a href="/compare?cities=sochi,krasnodar,rostov" class="btn-glass rounded-lg px-2.5 py-1">Юг: Сочи • Краснодар • Ростов</a>
+        </div>
+    </div>
+
+    <!-- Comparative System Verdict (v3.2 Feature) -->
+    {% if comparison_verdict %}
+    <div class="glass rounded-3xl p-6 md:p-8 border border-teal-400/30 relative overflow-hidden">
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-6">
+            <div class="max-w-3xl space-y-2">
+                <div class="inline-flex items-center gap-1.5 text-xs font-bold text-teal-300 uppercase tracking-wider">
+                    <i data-lucide="award" class="w-4 h-4 text-amber-300"></i>
+                    <span>Аналитический вердикт AirTrace</span>
+                </div>
+                <h3 class="text-xl md:text-2xl font-black text-white leading-tight">
+                    Лидер чистоты: г. {{ comparison_verdict.cleanest_city }}
+                </h3>
+                <p class="text-sm md:text-base opacity-90 leading-relaxed">
+                    {{ comparison_verdict.summary }}
+                </p>
+                {% if comparison_verdict.has_nmu_risk %}
+                <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-amber-500/20 text-amber-300 border border-amber-400/30 text-xs font-semibold mt-2">
+                    <i data-lucide="alert-triangle" class="w-3.5 h-3.5"></i>
+                    <span>Внимание: в одном из городов действуют неблагоприятные метеоусловия (НМУ)</span>
+                </div>
+                {% endif %}
+            </div>
+
+            <div class="panel rounded-2xl p-5 min-w-[200px] text-center flex flex-col items-center justify-center space-y-1">
+                <div class="text-xs opacity-70 uppercase tracking-wider">AQI победителя</div>
+                <div class="text-5xl font-black" style="color: {{ comparison_verdict.cleanest_color }}">
+                    {{ comparison_verdict.cleanest_aqi }}
+                </div>
+                <div class="text-xs font-bold text-teal-200 mt-1">г. {{ comparison_verdict.cleanest_city }}</div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Multi-city 24-hour SVG Forecast Chart (v3.2 Feature) -->
+    <div class="glass rounded-3xl p-6 md:p-8 space-y-4">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-3 border-b border-white/10">
+            <div>
+                <h3 class="text-lg md:text-xl font-bold flex items-center gap-2">
+                    <i data-lucide="trending-up" class="w-5 h-5 text-sky-400"></i>
+                    <span>Сравнительный почасовой прогноз на 24 часа</span>
+                </h3>
+                <p class="text-xs opacity-70 mt-0.5">Динамика индекса AQI для выбора оптимального времени активности</p>
+            </div>
+            
+            <!-- Series Legend -->
+            <div class="flex items-center gap-3 flex-wrap">
+                {% for card in compare_cards %}
+                <div class="flex items-center gap-1.5 text-xs font-medium">
+                    <span class="w-3 h-1 rounded-full" style="background-color: {{ card.series_color }};"></span>
+                    <span>{{ card.city.name }}</span>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- SVG Chart Container -->
+        <div id="compare-multiline-chart" class="w-full overflow-x-auto select-none pt-2"></div>
+    </div>
+
+    <!-- Lifestyle Activities Comparison Matrix (v3.2 Feature) -->
+    <div class="glass rounded-3xl p-6 md:p-8 space-y-4">
+        <div>
+            <h3 class="text-lg md:text-xl font-bold flex items-center gap-2">
+                <i data-lucide="heart-pulse" class="w-5 h-5 text-rose-400"></i>
+                <span>Сравнение рекомендаций для повседневной жизни</span>
+            </h3>
+            <p class="text-xs opacity-70 mt-0.5">Где комфортнее и безопаснее тренироваться, проветривать дом или выходить на прогулку</p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 pt-2">
+            <!-- Outdoor Sports -->
+            <div class="panel rounded-2xl p-4 space-y-3">
+                <div class="text-xs font-bold text-teal-300 flex items-center gap-1.5 uppercase tracking-wider">
+                    <i data-lucide="activity" class="w-4 h-4"></i>
+                    <span>Спорт на улице</span>
+                </div>
+                <div class="space-y-2">
+                    {% for card in compare_cards %}
+                    {% set act = (card.advisories.activities | selectattr("category", "equalto", "outdoor_sports") | first) if card.advisories else None %}
+                    <div class="flex items-center justify-between p-2 rounded-xl bg-white/5 text-xs">
+                        <span class="font-medium text-white">{{ card.city.name }}</span>
+                        {% if act %}
+                        <span class="px-2 py-0.5 rounded text-[11px] font-bold" style="background-color: {{ act.badge_color }}25; color: {{ act.badge_color }};">
+                            {{ act.status_label }}
+                        </span>
+                        {% else %}
+                        <span class="opacity-60">Допустимо</span>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- Ventilation -->
+            <div class="panel rounded-2xl p-4 space-y-3">
+                <div class="text-xs font-bold text-sky-300 flex items-center gap-1.5 uppercase tracking-wider">
+                    <i data-lucide="wind" class="w-4 h-4"></i>
+                    <span>Проветривание</span>
+                </div>
+                <div class="space-y-2">
+                    {% for card in compare_cards %}
+                    {% set act = (card.advisories.activities | selectattr("category", "equalto", "ventilation") | first) if card.advisories else None %}
+                    <div class="flex items-center justify-between p-2 rounded-xl bg-white/5 text-xs">
+                        <span class="font-medium text-white">{{ card.city.name }}</span>
+                        {% if act %}
+                        <span class="px-2 py-0.5 rounded text-[11px] font-bold" style="background-color: {{ act.badge_color }}25; color: {{ act.badge_color }};">
+                            {{ act.status_label }}
+                        </span>
+                        {% else %}
+                        <span class="opacity-60">Обычно</span>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- Masks & PPE -->
+            <div class="panel rounded-2xl p-4 space-y-3">
+                <div class="text-xs font-bold text-amber-300 flex items-center gap-1.5 uppercase tracking-wider">
+                    <i data-lucide="shield-alert" class="w-4 h-4"></i>
+                    <span>Маски и защита</span>
+                </div>
+                <div class="space-y-2">
+                    {% for card in compare_cards %}
+                    {% set act = (card.advisories.activities | selectattr("category", "equalto", "masks") | first) if card.advisories else None %}
+                    <div class="flex items-center justify-between p-2 rounded-xl bg-white/5 text-xs">
+                        <span class="font-medium text-white">{{ card.city.name }}</span>
+                        {% if act %}
+                        <span class="px-2 py-0.5 rounded text-[11px] font-bold" style="background-color: {{ act.badge_color }}25; color: {{ act.badge_color }};">
+                            {{ act.status_label }}
+                        </span>
+                        {% else %}
+                        <span class="opacity-60">Не требуется</span>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- Air Purifier -->
+            <div class="panel rounded-2xl p-4 space-y-3">
+                <div class="text-xs font-bold text-violet-300 flex items-center gap-1.5 uppercase tracking-wider">
+                    <i data-lucide="fan" class="w-4 h-4"></i>
+                    <span>Очиститель воздуха</span>
+                </div>
+                <div class="space-y-2">
+                    {% for card in compare_cards %}
+                    {% set act = (card.advisories.activities | selectattr("category", "equalto", "air_purifier") | first) if card.advisories else None %}
+                    <div class="flex items-center justify-between p-2 rounded-xl bg-white/5 text-xs">
+                        <span class="font-medium text-white">{{ card.city.name }}</span>
+                        {% if act %}
+                        <span class="px-2 py-0.5 rounded text-[11px] font-bold" style="background-color: {{ act.badge_color }}25; color: {{ act.badge_color }};">
+                            {{ act.status_label }}
+                        </span>
+                        {% else %}
+                        <span class="opacity-60">Базовый</span>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Detailed City Cards Grid -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-{{ [compare_cards|length, 4]|min }} gap-6">
+        {% for card in compare_cards %}
+        <article class="panel rounded-3xl p-6 flex flex-col justify-between hover:bg-white/10 transition-colors border border-white/15 shadow-xl">
+            <div>
+                <!-- Header with City Name and Accent Strip -->
                 <div class="flex items-center justify-between gap-3 mb-4">
-                    <div>
+                    <div class="border-l-4 pl-3" style="border-color: {{ card.series_color }};">
                         <h3 class="text-2xl font-bold text-white">{{ card.city.name }}</h3>
                         <div class="text-xs opacity-65">{{ card.city_key }} • {{ card.city.region or "Россия" }}</div>
                     </div>
                     <a href="/city/{{ card.city_key }}" class="btn-glass rounded-xl px-3 py-1.5 text-xs font-semibold flex items-center gap-1">
-                        <span>Открыть</span>
+                        <span>Прогноз</span>
                         <i data-lucide="arrow-right" class="w-3.5 h-3.5"></i>
                     </a>
                 </div>
 
-                <!-- AQI Gauge Bar -->
+                <!-- AQI Gauge Bar (Preserves Contract for Tests) -->
                 <div class="glass rounded-2xl p-4 mb-4">
                     <div class="flex items-baseline justify-between mb-2">
                         <div class="text-xs opacity-70 mb-1">AQI сейчас</div>
@@ -63,6 +260,24 @@
                     </div>
                 </div>
 
+                <!-- Pollutants Snapshot -->
+                {% if card.current.pollutants %}
+                <div class="panel rounded-2xl p-3 mb-4 grid grid-cols-3 gap-2 text-center text-xs">
+                    <div>
+                        <div class="opacity-60 text-[10px]">PM2.5</div>
+                        <div class="font-bold">{{ card.current.pollutants.pm2_5 or "—" }}</div>
+                    </div>
+                    <div>
+                        <div class="opacity-60 text-[10px]">PM10</div>
+                        <div class="font-bold">{{ card.current.pollutants.pm10 or "—" }}</div>
+                    </div>
+                    <div>
+                        <div class="opacity-60 text-[10px]">NO2</div>
+                        <div class="font-bold">{{ card.current.pollutants.no2 or "—" }}</div>
+                    </div>
+                </div>
+                {% endif %}
+
                 <!-- Trend & NMU status -->
                 <div class="panel rounded-2xl p-4 mb-4 space-y-2">
                     <div class="flex justify-between items-center text-xs">
@@ -73,7 +288,7 @@
                 </div>
             </div>
 
-            <!-- Explainability Footer -->
+            <!-- Explainability Footer (Preserves Contract) -->
             <div class="space-y-2 text-xs pt-4 border-t border-white/10" data-testid="explainability-block">
                 <div class="flex justify-between gap-3"><span class="opacity-70">Источник</span><span>{{ translate_source(card.explainability.source) }}</span></div>
                 <div class="flex justify-between gap-3"><span class="opacity-70">Свежесть</span><span>{{ translate_freshness(card.explainability.freshness) }}</span></div>
@@ -83,4 +298,13 @@
         {% endfor %}
     </div>
 </section>
+
+{% block extra_scripts %}
+<script id="compare-forecast-data" type="application/json">
+{{ compare_forecast_json|safe }}
+</script>
+<script id="compare-all-cities-data" type="application/json">
+{{ all_cities_json|safe }}
+</script>
+{% endblock %}
 {% endblock %}

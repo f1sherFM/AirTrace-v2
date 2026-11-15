@@ -442,30 +442,125 @@ async def build_compare_page_context(
     city_keys: list[str],
 ) -> dict[str, Any]:
     cities = get_cities_mapping()
-    selected = [key for key in city_keys if key in cities][:3]
+    selected = [key for key in city_keys if key in cities][:4]
+    if not selected:
+        selected = ["moscow", "spb"]
+
     health_context = await _health_context(service)
     cards: list[dict[str, Any]] = []
-    for key in selected:
+    series_colors = ["#2dd4bf", "#fbbf24", "#a78bfa", "#38bdf8"]
+
+    for idx, key in enumerate(selected):
         city = cities[key]
-        current_raw, trends_raw = await asyncio.gather(
+        current_raw, forecast_raw, trends_raw = await asyncio.gather(
             service.get_current_data(city["lat"], city["lon"]),
+            service.get_forecast_data(city["lat"], city["lon"], hours=24),
             service.get_trends_data(city_key=key, range_preset="7d"),
+            return_exceptions=True,
         )
+        if isinstance(current_raw, Exception):
+            logger.debug("Failed to fetch current air data for compare city %s: %s", key, current_raw)
+            current_raw = {}
+        if isinstance(forecast_raw, Exception):
+            forecast_raw = []
+        if isinstance(trends_raw, Exception):
+            trends_raw = {}
+
         current = normalize_current_payload(current_raw, lat=city["lat"], lon=city["lon"])
+        
+        # Build v3 lifestyle advisory
+        advisories = generate_activity_advisories(
+            aqi_value=current.get("aqi", {}).get("value", 0),
+            aqi_category=current.get("aqi", {}).get("category", "Хорошо"),
+            nmu_level=current.get("nmu_risk") or "none",
+            pollutants=current.get("pollutants") if isinstance(current.get("pollutants"), dict) else {},
+            weather=current.get("weather") if isinstance(current.get("weather"), dict) else {},
+        )
+
+        forecast_points = []
+        if isinstance(forecast_raw, list):
+            for item in forecast_raw:
+                if isinstance(item, dict):
+                    ts = item.get("timestamp", "")
+                    hour_label = ts[11:16] if len(ts) >= 16 else f"{len(forecast_points)}:00"
+                    aqi_info = item.get("aqi", {})
+                    aqi_val = aqi_info.get("value", 0) if isinstance(aqi_info, dict) else (aqi_info or 0)
+                    forecast_points.append({"time": hour_label, "aqi": int(aqi_val)})
+
         cards.append(
             {
                 "city_key": key,
                 "city": city,
                 "current": current,
+                "advisories": advisories,
+                "forecast_points": forecast_points,
+                "series_color": series_colors[idx % len(series_colors)],
                 "trend_payload": trends_raw,
                 "explainability": build_explainability(current),
             }
         )
+
+    # Compute comparative verdict
+    verdict = None
+    if cards:
+        valid_cards = [c for c in cards if c["current"]["aqi"]["value"] > 0]
+        pool = valid_cards if valid_cards else cards
+        cleanest = min(pool, key=lambda c: c["current"]["aqi"]["value"])
+        highest = max(pool, key=lambda c: c["current"]["aqi"]["value"])
+        min_val = cleanest["current"]["aqi"]["value"]
+        max_val = highest["current"]["aqi"]["value"]
+        diff_pct = round(((max_val - min_val) / max(max_val, 1)) * 100) if max_val > min_val else 0
+
+        if len(cards) >= 2 and min_val != max_val:
+            summary = (
+                f"Самый чистый воздух среди выбранных городов прямо сейчас — в г. {cleanest['city']['name']} "
+                f"(AQI {min_val}, {cleanest['current']['aqi']['category']}). "
+                f"Здесь на {diff_pct}% чище, чем в г. {highest['city']['name']} (AQI {max_val}). "
+                f"Отличные условия для спорта на улице и проветривания."
+            )
+        else:
+            summary = (
+                f"Качество воздуха в выбранных городах на близком уровне "
+                f"(средний AQI {round(sum(c['current']['aqi']['value'] for c in cards) / max(len(cards), 1))})."
+            )
+
+        verdict = {
+            "cleanest_city": cleanest["city"]["name"],
+            "cleanest_key": cleanest["city_key"],
+            "cleanest_aqi": min_val,
+            "cleanest_color": cleanest["current"]["aqi"]["color"],
+            "highest_city": highest["city"]["name"],
+            "highest_aqi": max_val,
+            "diff_pct": diff_pct,
+            "summary": summary,
+            "has_nmu_risk": any(c["current"].get("nmu_risk") not in (None, "none") for c in cards),
+        }
+
+    # Format multi-series forecast for interactive SVG overlay
+    compare_series = [
+        {
+            "key": card["city_key"],
+            "name": card["city"]["name"],
+            "color": card["series_color"],
+            "current_aqi": card["current"]["aqi"]["value"],
+            "points": card["forecast_points"],
+        }
+        for card in cards
+    ]
+
+    all_cities_flat = [
+        {"key": k, "name": c["name"], "region": c.get("region", "")}
+        for k, c in cities.items()
+    ]
+
     return {
         "request": request,
         "cities": cities,
+        "all_cities_json": json.dumps(all_cities_flat, ensure_ascii=False),
         "compare_cards": cards,
         "selected_cities": selected,
+        "comparison_verdict": verdict,
+        "compare_forecast_json": json.dumps(compare_series, ensure_ascii=False),
         "title": "Сравнение городов",
         **health_context,
     }

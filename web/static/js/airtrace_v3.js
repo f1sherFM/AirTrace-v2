@@ -854,6 +854,197 @@
         }
     }
 
+    // -------------------------------------------------------------
+    // 7. Multi-City Comparison & Multiline Chart (AirTrace v3.2 Feature)
+    // -------------------------------------------------------------
+    function initComparePage() {
+        const chartContainer = document.getElementById('compare-multiline-chart');
+        const forecastScript = document.getElementById('compare-forecast-data');
+        const allCitiesScript = document.getElementById('compare-all-cities-data');
+        const searchInput = document.getElementById('compare-search-input');
+        const autocompleteBox = document.getElementById('compare-autocomplete-box');
+        const hiddenCitiesInput = document.getElementById('compare-cities-hidden');
+        const removeButtons = document.querySelectorAll('.remove-compare-city-btn');
+
+        // Handle city removal
+        removeButtons.forEach(btn => {
+            btn.addEventListener('click', function () {
+                const keyToRemove = this.getAttribute('data-key');
+                const currentStr = hiddenCitiesInput ? hiddenCitiesInput.value : '';
+                const updatedList = currentStr.split(',').map(s => s.trim()).filter(s => s && s !== keyToRemove);
+                if (updatedList.length > 0) {
+                    window.location.href = '/compare?cities=' + encodeURIComponent(updatedList.join(','));
+                }
+            });
+        });
+
+        // City Search Autocomplete for adding to compare
+        if (searchInput && autocompleteBox && allCitiesScript) {
+            let allCities = [];
+            try {
+                allCities = JSON.parse(allCitiesScript.textContent);
+            } catch (e) {}
+
+            searchInput.addEventListener('input', function (e) {
+                const q = e.target.value.trim().toLowerCase();
+                if (!q) {
+                    autocompleteBox.classList.add('hidden');
+                    autocompleteBox.innerHTML = '';
+                    return;
+                }
+
+                const currentCities = hiddenCitiesInput ? hiddenCitiesInput.value.split(',').map(s => s.trim().toLowerCase()) : [];
+                const matches = allCities.filter(c => {
+                    if (currentCities.includes(c.key.toLowerCase())) return false;
+                    const name = c.name.toLowerCase();
+                    const key = c.key.toLowerCase();
+                    return name.includes(q) || key.includes(q);
+                }).slice(0, 6);
+
+                if (matches.length === 0) {
+                    autocompleteBox.innerHTML = '<div class="p-3 text-xs text-white/60 text-center">Город не найден или уже добавлен</div>';
+                    autocompleteBox.classList.remove('hidden');
+                    return;
+                }
+
+                let html = '<div class="py-1">';
+                matches.forEach(c => {
+                    const escapedName = escapeHtml(c.name);
+                    const escapedRegion = escapeHtml(c.region || '');
+                    html += `
+                        <div class="compare-suggest-item px-4 py-2 hover:bg-white/15 cursor-pointer flex items-center justify-between transition-colors border-b border-white/5 last:border-0" data-key="${c.key}">
+                            <div>
+                                <span class="text-xs font-semibold text-white">${escapedName}</span>
+                                <span class="text-[10px] text-white/50 block">${escapedRegion}</span>
+                            </div>
+                            <span class="text-[10px] text-teal-300 font-bold">+ Добавить</span>
+                        </div>
+                    `;
+                });
+                html += '</div>';
+
+                autocompleteBox.innerHTML = html;
+                autocompleteBox.classList.remove('hidden');
+
+                autocompleteBox.querySelectorAll('.compare-suggest-item').forEach(item => {
+                    item.addEventListener('click', function () {
+                        const newKey = this.getAttribute('data-key');
+                        const nextList = [...currentCities, newKey].slice(0, 4);
+                        window.location.href = '/compare?cities=' + encodeURIComponent(nextList.join(','));
+                    });
+                });
+            });
+
+            document.addEventListener('click', function (e) {
+                if (!searchInput.contains(e.target) && !autocompleteBox.contains(e.target)) {
+                    autocompleteBox.classList.add('hidden');
+                }
+            });
+        }
+
+        // Render Multi-line Chart
+        if (!chartContainer || !forecastScript) return;
+        let seriesData = [];
+        try {
+            seriesData = JSON.parse(forecastScript.textContent);
+        } catch (e) {
+            console.error('Failed to parse compare forecast data', e);
+            return;
+        }
+
+        if (!seriesData || seriesData.length === 0) return;
+
+        const maxLenSeries = seriesData.reduce((prev, curr) => {
+            const prevLen = (prev && prev.points) ? prev.points.length : 0;
+            const currLen = (curr && curr.points) ? curr.points.length : 0;
+            return currLen > prevLen ? curr : prev;
+        }, seriesData[0]);
+
+        if (!maxLenSeries || !maxLenSeries.points || maxLenSeries.points.length === 0) {
+            chartContainer.innerHTML = '<div class="p-6 text-center text-xs opacity-60">Данные прогноза формируются</div>';
+            return;
+        }
+
+        const width = 900;
+        const height = 280;
+        const padLeft = 45;
+        const padRight = 20;
+        const padTop = 30;
+        const padBottom = 40;
+
+        let maxAqi = 100;
+        seriesData.forEach(s => {
+            if (s.points) {
+                s.points.forEach(p => {
+                    if (p.aqi > maxAqi) maxAqi = p.aqi;
+                });
+            }
+        });
+        maxAqi = Math.ceil((maxAqi + 15) / 50) * 50;
+
+        const numPoints = maxLenSeries.points.length;
+        const getX = (idx) => padLeft + (idx / Math.max(numPoints - 1, 1)) * (width - padLeft - padRight);
+        const getY = (val) => padTop + (height - padTop - padBottom) * (1 - (val / maxAqi));
+
+        let svgHtml = `
+            <svg viewBox="0 0 ${width} ${height}" class="w-full h-auto overflow-visible select-none font-sans">
+                <!-- Grid Lines -->
+                <line x1="${padLeft}" y1="${getY(50)}" x2="${width - padRight}" y2="${getY(50)}" stroke="rgba(16, 185, 129, 0.25)" stroke-dasharray="4 4" />
+                <text x="${padLeft - 6}" y="${getY(50) + 4}" font-size="10" fill="#10b981" opacity="0.8" text-anchor="end">50</text>
+
+                <line x1="${padLeft}" y1="${getY(100)}" x2="${width - padRight}" y2="${getY(100)}" stroke="rgba(245, 158, 11, 0.25)" stroke-dasharray="4 4" />
+                <text x="${padLeft - 6}" y="${getY(100) + 4}" font-size="10" fill="#f59e0b" opacity="0.8" text-anchor="end">100</text>
+        `;
+
+        if (maxAqi >= 150) {
+            svgHtml += `
+                <line x1="${padLeft}" y1="${getY(150)}" x2="${width - padRight}" y2="${getY(150)}" stroke="rgba(239, 68, 68, 0.25)" stroke-dasharray="4 4" />
+                <text x="${padLeft - 6}" y="${getY(150) + 4}" font-size="10" fill="#ef4444" opacity="0.8" text-anchor="end">150</text>
+            `;
+        }
+
+        // Draw Series Lines and Dots
+        seriesData.forEach(s => {
+            if (!s.points || s.points.length === 0) return;
+            let pathD = '';
+            s.points.forEach((p, i) => {
+                const x = getX(i);
+                const y = getY(p.aqi);
+                if (i === 0) pathD += `M ${x} ${y}`;
+                else pathD += ` L ${x} ${y}`;
+            });
+
+            svgHtml += `
+                <path d="${pathD}" fill="none" stroke="${s.color}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" opacity="0.9" />
+            `;
+
+            // Draw points
+            s.points.forEach((p, i) => {
+                if (i % 3 === 0 || i === s.points.length - 1) {
+                    const x = getX(i);
+                    const y = getY(p.aqi);
+                    svgHtml += `
+                        <circle cx="${x}" cy="${y}" r="3.5" fill="${s.color}" stroke="#0b1220" stroke-width="1.5" />
+                    `;
+                }
+            });
+        });
+
+        // X-axis Time Labels
+        maxLenSeries.points.forEach((p, i) => {
+            if (i % 3 === 0 || i === maxLenSeries.points.length - 1) {
+                const x = getX(i);
+                const timeLabel = p.time || `${i}:00`;
+                svgHtml += `
+                    <text x="${x}" y="${height - 12}" font-size="10" fill="rgba(255,255,255,0.5)" text-anchor="middle">${timeLabel}</text>
+                `;
+            }
+        });
+
+        svgHtml += `</svg>`;
+        chartContainer.innerHTML = svgHtml;
+    }
+
     // Unified initialization on DOM ready
     function init() {
         initCitySearch();
@@ -865,6 +1056,7 @@
         hydrateCatalogCardsFromLocalStorage();
         initCardFavoriteButtons();
         initInteractiveMap();
+        initComparePage();
     }
 
     if (document.readyState === 'loading') {
@@ -880,6 +1072,7 @@
         resizeTimer = setTimeout(() => {
             renderForecastChart();
             renderTrendsChart();
+            initComparePage();
         }, 200);
     });
 })();
