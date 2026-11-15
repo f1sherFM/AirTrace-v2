@@ -1,4 +1,4 @@
-# AirTrace v2
+# AirTrace v3 (Evolution from v2)
 
 [![CI](https://github.com/f1sherFM/AirTrace-v2/actions/workflows/ci.yml/badge.svg)](https://github.com/f1sherFM/AirTrace-v2/actions/workflows/ci.yml)
 [![Production Assets](https://github.com/f1sherFM/AirTrace-v2/actions/workflows/compose-assets.yml/badge.svg)](https://github.com/f1sherFM/AirTrace-v2/actions/workflows/compose-assets.yml)
@@ -6,57 +6,48 @@
 ![FastAPI](https://img.shields.io/badge/FastAPI-SSR%20%2B%20API-009688.svg?logo=fastapi&logoColor=white)
 ![Postgres](https://img.shields.io/badge/Postgres-16-336791.svg?logo=postgresql&logoColor=white)
 ![Redis](https://img.shields.io/badge/Redis-7-DC382D.svg?logo=redis&logoColor=white)
-![Status](https://img.shields.io/badge/status-production%20baseline-16a34a.svg)
+![Status](https://img.shields.io/badge/status-v3%20ready-16a34a.svg)
 
-Standalone repository for the new AirTrace core: `v2` API, Python SSR web app, Postgres-backed alerts, Telegram delivery, and production deployment assets.
+Standalone repository for the AirTrace platform: `v3` API and Lifestyle Advisory Engine, 75+ Russian cities catalog, interactive SVG charts, Python SSR web app, Postgres-backed alerts, Telegram delivery, and production deployment assets.
+
+## What's New in AirTrace v3
+
+- **75+ Russian Cities & Smart Search**: Instant fuzzy search across major industrial, regional, and population centers with Cyrillic/Latin transliteration support.
+- **Domain Lifestyle & Health Advisory Engine**: Computes structured recommendations for outdoor sports, window ventilation, masks/respirators, HEPA air purifiers, and sensitive groups.
+- **Interactive SVG Forecast Timeline**: Beautiful responsive hourly charts with colored SanPiN threshold bands, hover tooltips, and zero runtime dependencies.
+- **National Air Quality Ranking**: Live comparative overview of cleanest cities vs pollution/NMU watch zones.
+- **LocalStorage Favorites**: Star favorite cities for one-click access in the header.
+- **Public API v3**:
+  - `GET /v3/cities`: Search and catalog of 75+ cities.
+  - `GET /v3/cities/ranking`: National air quality ranking.
+  - `GET /v3/activities/advice`: Lifestyle and health recommendations.
+  - `GET /v3/current`: Current air quality with city-name resolution (`?city=kazan`).
+  - `GET /v3/forecast`: Forecast with peak pollution and safe window summaries.
+  - `GET /v3/history` & `GET /v3/trends`: Historical and trend data.
+  - Full backward compatibility with `v2` and `v1`.
+- Details: [docs/airtrace_v3_release.md](docs/airtrace_v3_release.md)
 
 ## Live Status
 
 - Production domain: [https://nande.webhop.me](https://nande.webhop.me)
 - Web UI: [https://nande.webhop.me](https://nande.webhop.me)
 - API docs: [https://nande.webhop.me/docs](https://nande.webhop.me/docs)
-- Health: [https://nande.webhop.me/api/v2/health](https://nande.webhop.me/api/v2/health)
-
-## What v2 Contains
-
-- Stable public readonly API:
-  - `GET /v2/current`
-  - `GET /v2/forecast`
-  - `GET /v2/history`
-  - `GET /v2/trends`
-  - `GET /v2/health`
-- Alert write paths:
-  - `POST /v2/alerts`
-  - `GET /v2/alerts`
-  - `GET /v2/alerts/{id}`
-  - `PATCH /v2/alerts/{id}`
-  - `DELETE /v2/alerts/{id}`
-- Python SSR web:
-  - city pages
-  - history and trends pages
-  - compare UI
-  - alerts settings UI
-  - explainability blocks
-- Production foundation:
-  - Docker deployment profile
-  - Postgres + Redis stack
-  - Sentry integration
-  - GitHub Actions safety net
-  - VPS runbook
+- Health: [https://nande.webhop.me/v3/health](https://nande.webhop.me/v3/health)
 
 ## Architecture
 
 ```text
 api/v1/            legacy compatibility adapter
 api/v2/            stable public v2 API
-application/       use cases, queries, SSR web layer
-domain/            AQI, NMU, confidence, pollutants
+api/v3/            AirTrace v3 public API (search, ranking, advisory, current, forecast)
+application/       use cases, queries (cities, ranking, health, readonly), SSR web layer
+domain/            AQI, NMU, advisory engine, confidence, pollutants
 infrastructure/    DB, repositories, cache, providers
-core/              app factory, lifecycle, settings
-web/               Python SSR app, templates, static assets
-config/            runtime config and cities mapping
-docs/              roadmap, ADRs, ops and deployment docs
-tests/             regression, contract, SSR, migration gates
+core/              app factory, lifecycle, settings, validation
+web/               Python SSR app, templates, static assets, SVG chart engine
+config/            runtime config and expanded 75+ cities mapping
+docs/              roadmap, ADRs, v3 release spec, ops and deployment docs
+tests/             regression, contract, SSR, v3 tests, migration gates
 ```
 
 ## Quick Start

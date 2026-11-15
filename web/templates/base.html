@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}AirTrace RU{% endblock %}</title>
+    <title>{% block title %}AirTrace RU v3{% endblock %}</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
@@ -14,7 +14,7 @@
             --glass-bg: rgba(255, 255, 255, 0.11);
             --glass-border: rgba(255, 255, 255, 0.18);
             --panel-bg: rgba(15, 23, 42, 0.34);
-            --focus-ring: #fbbf24;
+            --focus-ring: #38bdf8;
         }
         html {
             min-height: 100%;
@@ -34,7 +34,7 @@
         .btn-glass { background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.16); transition: 0.2s ease; }
         .btn-glass:hover { background: rgba(255,255,255,0.18); }
         .aqi-good { --aqi-page-base: linear-gradient(135deg, #065f46 0%, #047857 100%); }
-        .aqi-moderate { --aqi-page-base: linear-gradient(135deg, #f0c808 0%, #fff27a 100%); }
+        .aqi-moderate { --aqi-page-base: linear-gradient(135deg, #854d0e 0%, #a16207 100%); }
         .aqi-unhealthy-sensitive { --aqi-page-base: linear-gradient(135deg, #9a3412 0%, #c2410c 100%); }
         .aqi-unhealthy { --aqi-page-base: linear-gradient(135deg, #991b1b 0%, #b91c1c 100%); }
         .aqi-very-unhealthy { --aqi-page-base: linear-gradient(135deg, #5b21b6 0%, #6d28d9 100%); }
@@ -70,31 +70,63 @@
                     <div>
                         <div class="flex items-center gap-3 mb-1">
                             <i data-lucide="wind" class="w-7 h-7 text-teal-200"></i>
-                            <a href="/" class="text-3xl font-bold tracking-tight hover:text-teal-100">AirTrace RU</a>
+                            <a href="/" class="text-3xl font-bold tracking-tight hover:text-teal-100 flex items-center gap-2">
+                                <span>AirTrace</span>
+                                <span class="text-xs px-2 py-0.5 rounded-full bg-teal-500/20 text-teal-300 border border-teal-400/30">v3 Core</span>
+                            </a>
                         </div>
-                        <p class="text-sm opacity-80">{% block location_display %}Выберите город для мониторинга качества воздуха{% endblock %}</p>
+                        <p class="text-sm opacity-80">{% block location_display %}Мониторинг качества воздуха в городах России{% endblock %}</p>
                     </div>
+
                     <div class="flex flex-col lg:flex-row gap-3 lg:items-center" aria-label="Navigation and controls">
+                        <!-- Instant Search Bar -->
+                        <div class="relative min-w-[260px] md:min-w-[300px]">
+                            <div class="relative">
+                                <i data-lucide="search" class="w-4 h-4 text-white/50 absolute left-3 top-1/2 -translate-y-1/2"></i>
+                                <input 
+                                    type="text" 
+                                    id="global-city-search" 
+                                    placeholder="Поиск города (Казань, Сочи...)" 
+                                    autocomplete="off"
+                                    class="w-full pl-9 pr-3 py-2 rounded-xl bg-white/10 border border-white/20 text-sm text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-sky-400 focus:bg-white/15 transition-all"
+                                >
+                            </div>
+                            <!-- Autocomplete dropdown -->
+                            <div id="city-search-results" class="hidden absolute top-full left-0 right-0 mt-2 bg-slate-900/95 border border-white/20 backdrop-blur-xl rounded-xl shadow-2xl z-[200] max-h-72 overflow-y-auto"></div>
+                        </div>
+
+                        <!-- Fallback dropdown -->
                         {% include 'custom_select.html' %}
+
                         <nav class="flex flex-wrap gap-2">
-                            <a href="/compare?cities=moscow,spb" class="btn-glass rounded-xl px-4 py-2 text-sm">Сравнение</a>
-                            <a href="/alerts/settings" class="btn-glass rounded-xl px-4 py-2 text-sm">Уведомления</a>
+                            <a href="/compare?cities=moscow,spb,kazan" class="btn-glass rounded-xl px-3.5 py-2 text-sm flex items-center gap-1.5">
+                                <i data-lucide="columns-2" class="w-4 h-4 text-teal-300"></i>
+                                <span>Сравнение</span>
+                            </a>
+                            <a href="/alerts/settings" class="btn-glass rounded-xl px-3.5 py-2 text-sm flex items-center gap-1.5">
+                                <i data-lucide="bell" class="w-4 h-4 text-amber-300"></i>
+                                <span>Уведомления</span>
+                            </a>
                             {% if current_city %}
                                 {% if is_custom %}
-                                    <a href="/history/custom?lat={{ current_city.lat }}&lon={{ current_city.lon }}&city_name={{ current_city.name | urlencode }}" class="btn-glass rounded-xl px-4 py-2 text-sm">История</a>
-                                    <a href="/trends/custom?lat={{ current_city.lat }}&lon={{ current_city.lon }}&city_name={{ current_city.name | urlencode }}" class="btn-glass rounded-xl px-4 py-2 text-sm">Тренды</a>
+                                    <a href="/history/custom?lat={{ current_city.lat }}&lon={{ current_city.lon }}&city_name={{ current_city.name | urlencode }}" class="btn-glass rounded-xl px-3.5 py-2 text-sm">История</a>
+                                    <a href="/trends/custom?lat={{ current_city.lat }}&lon={{ current_city.lon }}&city_name={{ current_city.name | urlencode }}" class="btn-glass rounded-xl px-3.5 py-2 text-sm">Тренды</a>
                                 {% else %}
-                                    <a href="/history/{{ city_key }}" class="btn-glass rounded-xl px-4 py-2 text-sm">История</a>
-                                    <a href="/trends/{{ city_key }}" class="btn-glass rounded-xl px-4 py-2 text-sm">Тренды</a>
+                                    <a href="/history/{{ city_key }}" class="btn-glass rounded-xl px-3.5 py-2 text-sm">История</a>
+                                    <a href="/trends/{{ city_key }}" class="btn-glass rounded-xl px-3.5 py-2 text-sm">Тренды</a>
                                 {% endif %}
                             {% endif %}
                         </nav>
+
                         <div class="flex items-center gap-2 text-xs" aria-live="polite" aria-label="Backend API status">
                             <span class="w-2.5 h-2.5 rounded-full {% if api_reachable is defined and not api_reachable %}bg-red-500{% elif api_status == 'healthy' %}bg-green-500{% elif api_status == 'unhealthy' %}bg-red-500{% else %}bg-yellow-400{% endif %}"></span>
                             <span>{% if api_reachable is defined and not api_reachable %}API недоступен{% else %}API {{ translate_api_status(api_status) }}{% endif %}</span>
                         </div>
                     </div>
                 </div>
+
+                <!-- Favorites Quick Chips Bar -->
+                <div id="favorites-bar" class="mt-3 pt-3 border-t border-white/10"></div>
             </div>
         </header>
 
@@ -103,10 +135,11 @@
         </main>
 
         <footer class="mt-12 text-center text-xs opacity-60" role="contentinfo">
-            <p>&copy; 2026 AirTrace RU. Новое ядро, стабильная история, тренды и объяснимость.</p>
+            <p>&copy; 2026 AirTrace v3. Мониторинг атмосферного воздуха городов России • ПДК SanPiN • Режим НМУ • Персональные рекомендации</p>
         </footer>
     </div>
-    <script>lucide.createIcons();</script>
+    <script src="/static/js/airtrace_v3.js"></script>
+    <script>if(window.lucide) lucide.createIcons();</script>
     {% block extra_scripts %}{% endblock %}
 </body>
 </html>

@@ -384,7 +384,7 @@ class TestEndToEndPerformanceMonitoring:
         if manager.resource_manager:
             # Mock high memory usage
             with patch.object(manager.resource_manager, 'get_resource_usage') as mock_usage:
-                    from infrastructure.resources.resource_manager import ResourceUsage, MemoryUsage, CPUUsage
+                from infrastructure.resources.resource_manager import ResourceUsage, MemoryUsage, CPUUsage
                 
                 mock_usage.return_value = ResourceUsage(
                     timestamp=datetime.now(),

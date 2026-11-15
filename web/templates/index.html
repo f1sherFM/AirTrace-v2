@@ -1,58 +1,190 @@
 {% extends "base.html" %}
 
-{% block title %}AirTrace RU{% endblock %}
+{% block title %}AirTrace RU v3 — Мониторинг качества воздуха городов России{% endblock %}
 
 {% block content %}
+<!-- Hero Section -->
 <section class="grid grid-cols-1 xl:grid-cols-4 gap-6">
-    <div class="xl:col-span-3 glass rounded-3xl p-8">
-        <div class="flex flex-col lg:flex-row gap-6 lg:items-end lg:justify-between">
+    <div class="xl:col-span-3 glass rounded-3xl p-6 md:p-10 relative overflow-hidden">
+        <div class="flex flex-col lg:flex-row gap-8 lg:items-end lg:justify-between">
             <div class="max-w-3xl">
-                <p class="text-xs uppercase tracking-[0.3em] opacity-70 mb-3">AirTrace v2</p>
-                <h2 class="text-4xl md:text-5xl font-bold leading-tight mb-4">История, тренды и объяснимость в одном SSR-потоке.</h2>
-                <p class="text-lg opacity-85 mb-6">
-                    AirTrace теперь рендерит страницы напрямую из application layer: без внутреннего web-to-api hop,
-                    с единым ядром для API и SSR и безопасной миграцией маршрут за маршрутом.
+                <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-teal-500/20 text-teal-300 border border-teal-400/30 text-xs font-semibold uppercase tracking-wider mb-4">
+                    <i data-lucide="sparkles" class="w-3.5 h-3.5"></i>
+                    <span>Крупное обновление AirTrace v3</span>
+                </div>
+                <h2 class="text-3xl md:text-5xl font-black leading-tight tracking-tight mb-4">
+                    Чистый воздух под контролем: прогнозы, здоровье и режим НМУ.
+                </h2>
+                <p class="text-base md:text-lg opacity-85 leading-relaxed mb-6">
+                    AirTrace v3 объединяет 75+ городов России, мгновенный умный поиск, визуальные интерактивные графики, 
+                    расчёт рисков неблагоприятных метеоусловий (НМУ) и персонализированные советы по тренировкам, проветриванию и защите дыхания.
                 </p>
                 <div class="flex flex-wrap gap-3">
-                    <a href="/city/moscow" class="btn-glass rounded-xl px-5 py-3">Открыть Москву</a>
-                    <a href="/compare?cities=moscow,spb" class="btn-glass rounded-xl px-5 py-3">Сравнить города</a>
-                    <a href="/alerts/settings" class="btn-glass rounded-xl px-5 py-3">Управлять уведомлениями</a>
+                    <a href="/city/moscow" class="btn-glass rounded-xl px-5 py-3 text-sm font-semibold flex items-center gap-2">
+                        <i data-lucide="map-pin" class="w-4 h-4 text-teal-300"></i>
+                        <span>Москва</span>
+                    </a>
+                    <a href="/city/spb" class="btn-glass rounded-xl px-5 py-3 text-sm font-semibold flex items-center gap-2">
+                        <i data-lucide="map-pin" class="w-4 h-4 text-teal-300"></i>
+                        <span>Санкт-Петербург</span>
+                    </a>
+                    <a href="/city/kazan" class="btn-glass rounded-xl px-5 py-3 text-sm font-semibold flex items-center gap-2">
+                        <i data-lucide="map-pin" class="w-4 h-4 text-teal-300"></i>
+                        <span>Казань</span>
+                    </a>
+                    <a href="/compare?cities=moscow,spb,krasnoyarsk" class="btn-glass rounded-xl px-5 py-3 text-sm font-semibold flex items-center gap-2">
+                        <i data-lucide="columns-2" class="w-4 h-4 text-amber-300"></i>
+                        <span>Сравнить города</span>
+                    </a>
                 </div>
             </div>
-            <div class="panel rounded-3xl p-5 min-w-[250px]">
-                <div class="text-xs uppercase tracking-wide opacity-70 mb-2">Состояние backend</div>
-                <div class="text-2xl font-semibold mb-2">{{ translate_api_status(api_status) }}</div>
-                <div class="text-sm opacity-75">Городов в конфиге: {{ cities|length }}</div>
+
+            <div class="panel rounded-3xl p-5 min-w-[260px] space-y-3">
+                <div class="text-xs uppercase tracking-wide opacity-70">Сводка системы v3</div>
+                <div class="text-3xl font-bold text-teal-200">{{ translate_api_status(api_status) }}</div>
+                <div class="text-sm opacity-80 flex items-center justify-between">
+                    <span>Городов в базе:</span>
+                    <span class="font-bold">{{ cities|length }}</span>
+                </div>
+                <div class="text-sm opacity-80 flex items-center justify-between">
+                    <span>Режим работы:</span>
+                    <span class="font-bold text-emerald-300">High Availability</span>
+                </div>
             </div>
         </div>
     </div>
 
-    <div class="panel rounded-3xl p-6">
-        <h3 class="text-lg font-semibold mb-4">Что добавлено в AirTrace v2</h3>
-        <ul class="space-y-3 text-sm opacity-85">
-            <li>История качества воздуха за 24 часа, 7 дней и 30 дней</li>
-            <li>Тренды и короткие сводки, чтобы быстрее видеть изменения</li>
-            <li>Пояснения, откуда взялись данные и насколько они свежие</li>
-            <li>Постоянные уведомления с доставкой в Telegram</li>
-        </ul>
+    <!-- Highlights Card -->
+    <div class="panel rounded-3xl p-6 flex flex-col justify-between">
+        <div>
+            <h3 class="text-lg font-bold mb-3 flex items-center gap-2">
+                <i data-lucide="zap" class="w-5 h-5 text-amber-300"></i>
+                <span>Что нового в v3</span>
+            </h3>
+            <ul class="space-y-3 text-xs md:text-sm opacity-85">
+                <li class="flex items-start gap-2">
+                    <span class="text-teal-300 font-bold">✓</span>
+                    <span><strong>75+ городов РФ</strong> с умным поиском и транслитом</span>
+                </li>
+                <li class="flex items-start gap-2">
+                    <span class="text-teal-300 font-bold">✓</span>
+                    <span><strong>Интерактивные графики</strong> почасового прогноза и трендов</span>
+                </li>
+                <li class="flex items-start gap-2">
+                    <span class="text-teal-300 font-bold">✓</span>
+                    <span><strong>Рекомендации для жизни</strong>: спорт, окна, маски, очистители</span>
+                </li>
+                <li class="flex items-start gap-2">
+                    <span class="text-teal-300 font-bold">✓</span>
+                    <span><strong>Избранные города</strong> с быстрым доступом</span>
+                </li>
+            </ul>
+        </div>
+        <div class="pt-4 border-t border-white/10 mt-4">
+            <a href="/alerts/settings" class="text-xs text-teal-300 hover:underline flex items-center gap-1">
+                <i data-lucide="bell" class="w-3.5 h-3.5"></i>
+                <span>Настроить Telegram-оповещения →</span>
+            </a>
+        </div>
     </div>
 </section>
 
-<section class="mt-8 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
-    {% for key, city in cities.items() %}
-    <a href="/city/{{ key }}" class="glass rounded-3xl p-5 hover:bg-white/20 transition-colors">
-        <div class="flex items-center justify-between gap-4">
-            <div>
-                <div class="text-xl font-semibold">{{ city.name }}</div>
-                <div class="text-xs opacity-70 mt-1">{{ "%.2f"|format(city.lat) }}, {{ "%.2f"|format(city.lon) }}</div>
-            </div>
-            <i data-lucide="arrow-up-right" class="w-5 h-5 opacity-75"></i>
+<!-- National Overview & Ranking (AirTrace v3 Feature) -->
+{% if ranking %}
+<section class="mt-8 glass rounded-3xl p-6 md:p-8">
+    <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
+        <div>
+            <h3 class="text-2xl font-bold flex items-center gap-2">
+                <i data-lucide="award" class="w-6 h-6 text-amber-300"></i>
+                <span>Национальный рейтинг качества воздуха в РФ</span>
+            </h3>
+            <p class="text-sm opacity-75 mt-1">{{ ranking.summary }} Средний AQI: <strong>{{ ranking.average_aqi }}</strong></p>
         </div>
-    </a>
-    {% endfor %}
-    <a href="/custom" class="glass rounded-3xl p-5 hover:bg-white/20 transition-colors border border-dashed border-white/25">
-        <div class="text-xl font-semibold">Произвольные координаты</div>
-        <div class="text-sm opacity-75 mt-2">Откройте любую точку напрямую по широте и долготе.</div>
-    </a>
+        <span class="text-xs opacity-60">Обновлено: {{ ranking.timestamp[:16].replace("T", " ") }} UTC</span>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <!-- Top Cleanest Cities -->
+        <div class="panel rounded-2xl p-5">
+            <div class="text-xs uppercase tracking-wider font-semibold text-emerald-300 mb-3 flex items-center gap-1.5">
+                <i data-lucide="check-circle" class="w-4 h-4"></i>
+                <span>Топ чистых городов прямо сейчас</span>
+            </div>
+            <div class="space-y-2.5">
+                {% for item in ranking.cleanest_cities %}
+                <a href="/city/{{ item.key }}" class="flex items-center justify-between p-3 rounded-xl bg-white/5 hover:bg-white/15 transition-colors">
+                    <div>
+                        <div class="font-bold text-sm text-white">{{ item.name }}</div>
+                        <div class="text-xs opacity-65">{{ item.region or "Россия" }}</div>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <span class="text-xs px-2 py-0.5 rounded-full text-emerald-200 bg-emerald-500/20 border border-emerald-400/30">Чисто</span>
+                        <span class="text-xl font-bold text-emerald-400">{{ item.aqi }}</span>
+                    </div>
+                </a>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Attention Needed Cities -->
+        <div class="panel rounded-2xl p-5">
+            <div class="text-xs uppercase tracking-wider font-semibold text-amber-300 mb-3 flex items-center gap-1.5">
+                <i data-lucide="alert-triangle" class="w-4 h-4"></i>
+                <span>Зоны внимания и контроль примесей</span>
+            </div>
+            <div class="space-y-2.5">
+                {% for item in ranking.attention_cities %}
+                <a href="/city/{{ item.key }}" class="flex items-center justify-between p-3 rounded-xl bg-white/5 hover:bg-white/15 transition-colors">
+                    <div>
+                        <div class="font-bold text-sm text-white">{{ item.name }}</div>
+                        <div class="text-xs opacity-65">{{ item.region or "Россия" }}</div>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        {% if item.nmu_level != 'none' %}
+                        <span class="text-xs px-2 py-0.5 rounded-full text-amber-200 bg-amber-500/20 border border-amber-400/30">НМУ {{ item.nmu_level }}</span>
+                        {% else %}
+                        <span class="text-xs px-2 py-0.5 rounded-full text-white/70 bg-white/10">{{ item.aqi_category }}</span>
+                        {% endif %}
+                        <span class="text-xl font-bold" style="color: {{ item.aqi_color }}">{{ item.aqi }}</span>
+                    </div>
+                </a>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</section>
+{% endif %}
+
+<!-- Major Cities Catalog Grid -->
+<section class="mt-8">
+    <div class="flex items-center justify-between mb-4">
+        <h3 class="text-xl font-bold">Города под наблюдением</h3>
+        <span class="text-xs opacity-60">Всего: {{ cities|length }} городов</span>
+    </div>
+
+    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4">
+        {% for key, city in cities.items() %}
+        <a href="/city/{{ key }}" class="glass rounded-2xl p-4 hover:bg-white/20 transition-all group flex items-center justify-between">
+            <div>
+                <div class="text-base font-semibold group-hover:text-teal-200 transition-colors flex items-center gap-1.5">
+                    <span>{{ city.name }}</span>
+                    {% if city.is_major %}
+                    <span class="w-1.5 h-1.5 rounded-full bg-teal-300"></span>
+                    {% endif %}
+                </div>
+                <div class="text-xs opacity-65 mt-0.5">{{ city.region or ("%.2f, %.2f"|format(city.lat, city.lon)) }}</div>
+            </div>
+            <i data-lucide="arrow-up-right" class="w-4 h-4 opacity-50 group-hover:opacity-100 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-all text-teal-300"></i>
+        </a>
+        {% endfor %}
+
+        <a href="/custom" class="glass rounded-2xl p-4 hover:bg-white/20 transition-all border border-dashed border-white/25 flex items-center justify-between">
+            <div>
+                <div class="text-base font-semibold">Произвольная точка</div>
+                <div class="text-xs opacity-65 mt-0.5">Ввод любых координат по широте и долготе</div>
+            </div>
+            <i data-lucide="map-pin" class="w-5 h-5 text-sky-400"></i>
+        </a>
+    </div>
 </section>
 {% endblock %}

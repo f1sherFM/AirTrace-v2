@@ -57,4 +57,28 @@ class TestGracefulDegradationResilience:
             # Create test stale data
             test_stale_data = {
                 "timestamp": datetime.now(timezone.utc).isoformat(),
-                "l
+                "location": {
+                    "latitude": lat,
+                    "longitude": lon,
+                    "city": "Test City",
+                    "country": "Russia",
+                },
+                "aqi": {
+                    "value": 42,
+                    "category": "Хорошо",
+                    "color": "#00E400",
+                    "description": "Качество воздуха удовлетворительное",
+                },
+                "pollutants": {
+                    "pm2_5": 10.0,
+                    "pm10": 20.0,
+                    "no2": 15.0,
+                    "so2": 5.0,
+                    "o3": 30.0,
+                },
+            }
+            cache_key = f"current_{lat}_{lon}"
+            asyncio.run(degradation_manager.store_stale_data(cache_key, test_stale_data))
+            retrieved = asyncio.run(degradation_manager.get_stale_data(cache_key))
+            assert retrieved is not None
+            assert retrieved["aqi"]["value"] == 42

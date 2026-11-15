@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 from functools import lru_cache
 from pathlib import Path
-from typing import Any
+from typing import Any, Optional
 
 from pydantic import BaseModel, Field, ValidationError, model_validator
 
@@ -32,6 +32,8 @@ class CityConfig(BaseModel):
     name: str = Field(min_length=1)
     lat: float
     lon: float
+    region: Optional[str] = None
+    is_major: bool = False
 
     @model_validator(mode="after")
     def validate_coordinates(self) -> "CityConfig":
@@ -41,7 +43,12 @@ class CityConfig(BaseModel):
         return self
 
     def to_legacy_payload(self) -> dict[str, Any]:
-        return {"name": self.name, "lat": self.lat, "lon": self.lon}
+        payload: dict[str, Any] = {"name": self.name, "lat": self.lat, "lon": self.lon}
+        if self.region:
+            payload["region"] = self.region
+        if self.is_major:
+            payload["is_major"] = self.is_major
+        return payload
 
 
 class CitiesConfig(BaseModel):

@@ -56,6 +56,15 @@ def build_public_v2_openapi(app: FastAPI) -> dict[str, Any]:
     source = deepcopy(app.openapi())
     public_paths = {path: item for path, item in source.get("paths", {}).items() if path.startswith("/v2/")}
 
+    # Normalize Python 3.11 vs 3.13 status phrase differences for deterministic openapi artifact
+    for path_item in public_paths.values():
+        if isinstance(path_item, dict):
+            for op in path_item.values():
+                if isinstance(op, dict) and "responses" in op and isinstance(op["responses"], dict):
+                    resp_422 = op["responses"].get("422")
+                    if isinstance(resp_422, dict) and resp_422.get("description") == "Unprocessable Entity":
+                        resp_422["description"] = "Unprocessable Content"
+
     schemas = source.get("components", {}).get("schemas", {})
     required_schema_names = _collect_schema_refs(public_paths)
     selected_schemas: dict[str, Any] = {}

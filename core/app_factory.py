@@ -21,6 +21,7 @@ from api.ops import router as ops_router
 from api.v2.alerts import router as v2_alerts_router
 from api.v1.readonly import router as v1_readonly_router
 from api.v2.readonly import router as v2_readonly_router
+from api.v3 import router as v3_router
 from application.services.alert_worker import AlertEvaluationWorker
 from application.services.alerts import AlertSubscriptionService
 from config import config
@@ -291,7 +292,7 @@ def _register_exception_handlers(app: FastAPI) -> None:
     from schemas import ErrorResponse
 
     def _is_v2_request(request: Request) -> bool:
-        return request.url.path.startswith("/v2/")
+        return request.url.path.startswith(("/v2/", "/v3/"))
 
     def _status_to_v2_code(status_code: int) -> str:
         if status_code == 400:
@@ -393,6 +394,9 @@ def create_api_app() -> FastAPI:
         if request.url.path.startswith("/v2/"):
             for header, value in V2_RESPONSE_HEADERS.items():
                 response.headers.setdefault(header, value)
+        elif request.url.path.startswith("/v3/"):
+            response.headers.setdefault("X-AirTrace-API-Version", "3")
+            response.headers.setdefault("X-AirTrace-Contract", "v3-public")
         return response
 
     app.add_middleware(
@@ -425,6 +429,7 @@ def create_api_app() -> FastAPI:
     app.include_router(v1_readonly_router)
     app.include_router(v2_readonly_router)
     app.include_router(v2_alerts_router)
+    app.include_router(v3_router)
     app.include_router(legacy_router)
     app.include_router(ops_router)
     return app

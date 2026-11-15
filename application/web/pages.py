@@ -246,9 +246,16 @@ async def _safe_trends_data(service: WebAppService, **kwargs: Any) -> dict[str, 
 
 async def build_index_context(*, request: Any, service: WebAppService) -> dict[str, Any]:
     health_context = await _health_context(service)
+    ranking = None
+    try:
+        from application.queries.ranking import query_national_ranking
+        ranking = await query_national_ranking()
+    except Exception:
+        ranking = None
     return {
         "request": request,
         "cities": get_cities_mapping(),
+        "ranking": ranking,
         **health_context,
         "title": "AirTrace RU - Мониторинг качества воздуха",
     }
@@ -290,12 +297,21 @@ async def build_city_page_context(
     history_items = normalize_history_payload((history_raw or {}).get("items", [])[:12])
     explainability = build_explainability(current)
     data_status_notice = build_data_status_notice(current)
+    from domain.advisory import generate_activity_advisories
+    advisory = generate_activity_advisories(
+        aqi_value=current.get("aqi", {}).get("value", 0),
+        aqi_category=current.get("aqi", {}).get("category", "Хорошо"),
+        nmu_level=current.get("nmu_risk") or "none",
+        pollutants=current.get("pollutants"),
+        weather=current.get("weather"),
+    )
     return {
         "request": request,
         "cities": get_cities_mapping(),
         "current_city": city,
         "city_key": city_key,
         "data": current,
+        "advisory": advisory,
         "forecast": forecast,
         "forecast_groups": forecast_groups,
         "selected_forecast_hours": forecast_hours,

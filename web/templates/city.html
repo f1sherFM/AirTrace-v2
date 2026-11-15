@@ -1,8 +1,8 @@
 {% extends "base.html" %}
 
-{% block title %}{{ title }}{% endblock %}
+{% block title %}{{ title }} — AirTrace v3{% endblock %}
 {% block body_class %}{{ aqi_class }} min-h-screen{% endblock %}
-{% block location_display %}{{ current_city.name }}{% endblock %}
+{% block location_display %}{{ current_city.name }} • Качество воздуха{% endblock %}
 
 {% block content %}
 {% if data_status_notice %}
@@ -20,64 +20,95 @@
 </section>
 {% endif %}
 
+<!-- Main Current Status Hero Section -->
 <section class="grid grid-cols-1 xl:grid-cols-3 gap-6">
-    <div class="xl:col-span-2 glass rounded-3xl p-8">
-        <div class="flex flex-col md:flex-row md:items-end md:justify-between gap-6">
+    <div class="xl:col-span-2 glass rounded-3xl p-6 md:p-8 relative overflow-hidden">
+        <div class="flex flex-col md:flex-row md:items-start md:justify-between gap-6">
             <div>
-                <div class="text-xs uppercase tracking-[0.25em] opacity-70 mb-3">Сейчас</div>
-                <div class="flex items-end gap-4">
-                    <span class="text-7xl font-bold">{{ data.aqi.value }}</span>
+                <div class="flex items-center gap-3 mb-2">
+                    <span class="text-xs uppercase tracking-[0.25em] opacity-70">Сейчас в воздухе</span>
+                    {% if not is_custom %}
+                    <button 
+                        type="button" 
+                        id="city-fav-toggle-btn"
+                        data-city-key="{{ city_key }}"
+                        data-city-name="{{ current_city.name }}"
+                        class="btn-glass px-3 py-1 rounded-full text-xs flex items-center gap-1.5 transition-all"
+                    >
+                        <i data-lucide="star" class="w-3.5 h-3.5"></i>
+                        <span>В избранное</span>
+                    </button>
+                    {% endif %}
+                </div>
+
+                <div class="flex items-baseline gap-4 mt-3">
+                    <span class="text-7xl md:text-8xl font-black tracking-tight" style="color: {{ data.aqi.color }}">{{ data.aqi.value }}</span>
                     <div>
-                        <div class="text-2xl font-semibold" style="color: {{ data.aqi.color }}">{{ data.aqi.category }}</div>
-                        <div class="text-sm opacity-80 mt-1">{{ data.aqi.description }}</div>
+                        <div class="text-2xl md:text-3xl font-bold flex items-center gap-2" style="color: {{ data.aqi.color }}">
+                            <span>{{ data.aqi.category }}</span>
+                        </div>
+                        <div class="text-sm md:text-base opacity-85 mt-1">{{ data.aqi.description }}</div>
                     </div>
                 </div>
             </div>
-            <div class="panel rounded-2xl p-4 min-w-[230px]">
-                <div class="text-xs uppercase tracking-wide opacity-70 mb-2">Координаты</div>
-                <div class="text-sm font-mono">{{ "%.4f"|format(data.location.latitude) }}, {{ "%.4f"|format(data.location.longitude) }}</div>
-                <div class="text-xs opacity-70 mt-2">Обновлено: {{ format_time(data.timestamp) }}</div>
-            </div>
-        </div>
-        <div class="mt-6 panel rounded-2xl p-4">
-            <div class="text-sm font-semibold mb-2">Рекомендации</div>
-            <p class="text-sm opacity-85">{{ data.recommendations }}</p>
-        </div>
-    </div>
 
-    <div class="space-y-6">
-        <div class="glass rounded-3xl p-6 border-l-4 {{ nmu_config.border }}">
-            <div class="text-xs uppercase tracking-wide opacity-70 mb-2">Риск НМУ</div>
-            <div class="flex items-center gap-3">
-                <i data-lucide="{{ nmu_config.icon }}" class="{{ nmu_config.color }} w-7 h-7"></i>
-                <div>
-                    <div class="font-semibold">{{ nmu_config.level }}</div>
-                    <div class="text-xs opacity-75">{{ nmu_config.description }}</div>
+            <div class="panel rounded-2xl p-4 min-w-[240px] space-y-2">
+                <div class="text-xs uppercase tracking-wide opacity-70">Локация</div>
+                <div class="text-base font-semibold">{{ current_city.name }}</div>
+                <div class="text-xs font-mono opacity-80">{{ "%.4f"|format(data.location.latitude) }}°N, {{ "%.4f"|format(data.location.longitude) }}°E</div>
+                <div class="text-xs opacity-70 pt-1 border-t border-white/10 flex items-center gap-1.5">
+                    <i data-lucide="clock" class="w-3.5 h-3.5"></i>
+                    <span>Замер: {{ format_time(data.timestamp) }}</span>
                 </div>
             </div>
         </div>
 
+        <!-- Quick Summary Banner -->
+        <div class="mt-6 panel rounded-2xl p-4 bg-white/5 border border-white/10">
+            <div class="text-xs uppercase tracking-wide opacity-70 mb-1">Сводная оценка</div>
+            <p class="text-sm opacity-90 leading-relaxed">{{ advisory.summary if advisory else data.recommendations }}</p>
+        </div>
+    </div>
+
+    <!-- Right Side Sidebar: NMU & Explainability -->
+    <div class="space-y-6">
+        <!-- NMU Risk Card -->
+        <div class="glass rounded-3xl p-6 border-l-4 {{ nmu_config.border }}">
+            <div class="text-xs uppercase tracking-wide opacity-70 mb-2">Метеорологические условия (НМУ)</div>
+            <div class="flex items-center gap-3">
+                <i data-lucide="{{ nmu_config.icon }}" class="{{ nmu_config.color }} w-8 h-8"></i>
+                <div>
+                    <div class="font-bold text-lg">{{ nmu_config.level }}</div>
+                    <div class="text-xs opacity-80 mt-0.5">{{ nmu_config.description }}</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Explainability Card -->
         <div class="glass rounded-3xl p-6">
-            <div class="text-xs uppercase tracking-wide opacity-70 mb-3">Пояснение к данным</div>
-            <div class="space-y-3 text-sm" data-testid="explainability-block">
-                <div class="flex justify-between gap-4"><span class="opacity-70">Источник</span><span>{{ translate_source(explainability.source) }}</span></div>
-                <div class="flex justify-between gap-4"><span class="opacity-70">Свежесть</span><span>{{ translate_freshness(explainability.freshness) }}</span></div>
-                <div class="flex justify-between gap-4"><span class="opacity-70">Уверенность</span><span>{{ "%.2f"|format(explainability.confidence or 0) }}</span></div>
+            <div class="text-xs uppercase tracking-wide opacity-70 mb-3 flex items-center gap-1.5">
+                <i data-lucide="info" class="w-4 h-4 text-teal-300"></i>
+                <span>Пояснение к данным</span>
+            </div>
+            <div class="space-y-2.5 text-sm" data-testid="explainability-block">
+                <div class="flex justify-between gap-4"><span class="opacity-70">Источник</span><span class="font-medium">{{ translate_source(explainability.source) }}</span></div>
+                <div class="flex justify-between gap-4"><span class="opacity-70">Свежесть</span><span class="font-medium">{{ translate_freshness(explainability.freshness) }}</span></div>
+                <div class="flex justify-between gap-4"><span class="opacity-70">Уверенность</span><span class="font-medium">{{ "%.2f"|format(explainability.confidence or 0) }}</span></div>
                 {% if explainability.confidence_explanation %}
-                <div class="text-xs opacity-75">{{ explainability.confidence_explanation }}</div>
+                <div class="text-xs opacity-75 pt-1">{{ explainability.confidence_explanation }}</div>
                 {% endif %}
                 {% if explainability.fallback_used %}
-                <div class="text-xs px-2 py-1 rounded-lg bg-amber-400/15 border border-amber-300/30 inline-block">Используется резервный источник</div>
+                <div class="text-xs px-2.5 py-1 rounded-lg bg-amber-400/15 border border-amber-300/30 text-amber-200 inline-block">Используется резервный источник</div>
                 {% endif %}
             </div>
         </div>
 
         {% if data.health_warnings %}
         <div class="glass rounded-3xl p-6">
-            <div class="text-xs uppercase tracking-wide opacity-70 mb-3">Предупреждения</div>
+            <div class="text-xs uppercase tracking-wide opacity-70 mb-3 text-rose-300">Предупреждения</div>
             <div class="space-y-2">
                 {% for warning in data.health_warnings %}
-                <div class="panel rounded-xl p-3 text-sm">{{ warning }}</div>
+                <div class="panel rounded-xl p-3 text-sm border-l-2 border-rose-400">{{ warning }}</div>
                 {% endfor %}
             </div>
         </div>
@@ -85,123 +116,208 @@
     </div>
 </section>
 
-<section class="mt-6 glass rounded-3xl p-6">
-    <h3 class="text-xl font-semibold mb-4">План действий</h3>
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div class="panel rounded-2xl p-4">
-            <div class="text-sm font-semibold mb-3">Что сделать сейчас</div>
-            <ul class="space-y-2 text-sm">
-                {% for item in action_plan.immediate %}
-                <li>{{ item }}</li>
-                {% endfor %}
-            </ul>
+<!-- Lifestyle & Activity Recommendations (AirTrace v3 Feature) -->
+{% if advisory and advisory.activities %}
+<section class="mt-6 glass rounded-3xl p-6 md:p-8">
+    <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
+        <div>
+            <h3 class="text-2xl font-bold flex items-center gap-2">
+                <i data-lucide="heart-pulse" class="w-6 h-6 text-teal-300"></i>
+                <span>Рекомендации для жизни и здоровья</span>
+            </h3>
+            <p class="text-sm opacity-75 mt-1">Персональные практические советы с учётом текущего AQI и рассеивания примесей.</p>
         </div>
-        <div class="panel rounded-2xl p-4">
-            <div class="text-sm font-semibold mb-3">Чувствительные группы</div>
-            <ul class="space-y-2 text-sm">
-                {% for item in action_plan.sensitive %}
-                <li>{{ item }}</li>
-                {% endfor %}
-            </ul>
+        <span class="text-xs px-3 py-1 rounded-full bg-teal-500/20 text-teal-300 border border-teal-400/30 w-fit">v3 Advisory Engine</span>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
+        {% for act in advisory.activities %}
+        <div class="panel rounded-2xl p-5 flex flex-col justify-between hover:bg-white/10 transition-colors">
+            <div>
+                <div class="flex items-center justify-between gap-2 mb-3">
+                    <span class="text-xs font-semibold uppercase tracking-wider opacity-70">{{ act.title }}</span>
+                    <span class="text-[11px] font-bold px-2 py-0.5 rounded-full text-white" style="background-color: {{ act.badge_color }}">{{ act.status_label }}</span>
+                </div>
+                <div class="font-bold text-sm text-white mb-2 flex items-center gap-2">
+                    <i data-lucide="{{ act.icon }}" class="w-4 h-4 text-teal-300 shrink-0"></i>
+                    <span>{{ act.headline }}</span>
+                </div>
+                <p class="text-xs opacity-80 leading-relaxed">{{ act.description }}</p>
+            </div>
+            {% if act.tips %}
+            <div class="mt-4 pt-3 border-t border-white/10 text-[11px] opacity-70">
+                <ul class="space-y-1">
+                    {% for tip in act.tips %}
+                    <li>• {{ tip }}</li>
+                    {% endfor %}
+                </ul>
+            </div>
+            {% endif %}
         </div>
+        {% endfor %}
+    </div>
+</section>
+{% endif %}
+
+<!-- Pollutants Grid -->
+<section class="mt-6 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4">
+    <div class="glass rounded-2xl p-4 text-center">
+        <div class="text-xs opacity-70">PM2.5 (микропыль)</div>
+        <div class="text-3xl font-bold mt-1">{{ "%.1f"|format(data.pollutants.pm2_5) if data.pollutants.pm2_5 is not none else "--" }}</div>
+        <div class="text-[10px] opacity-60 mt-1">мкг/м³ • ПДК: 25</div>
+    </div>
+    <div class="glass rounded-2xl p-4 text-center">
+        <div class="text-xs opacity-70">PM10 (взвеси)</div>
+        <div class="text-3xl font-bold mt-1">{{ "%.1f"|format(data.pollutants.pm10) if data.pollutants.pm10 is not none else "--" }}</div>
+        <div class="text-[10px] opacity-60 mt-1">мкг/м³ • ПДК: 50</div>
+    </div>
+    <div class="glass rounded-2xl p-4 text-center">
+        <div class="text-xs opacity-70">NO₂ (диоксид азота)</div>
+        <div class="text-3xl font-bold mt-1">{{ "%.1f"|format(data.pollutants.no2) if data.pollutants.no2 is not none else "--" }}</div>
+        <div class="text-[10px] opacity-60 mt-1">мкг/м³ • ПДК: 40</div>
+    </div>
+    <div class="glass rounded-2xl p-4 text-center">
+        <div class="text-xs opacity-70">SO₂ (диоксид серы)</div>
+        <div class="text-3xl font-bold mt-1">{{ "%.1f"|format(data.pollutants.so2) if data.pollutants.so2 is not none else "--" }}</div>
+        <div class="text-[10px] opacity-60 mt-1">мкг/м³ • ПДК: 50</div>
+    </div>
+    <div class="glass rounded-2xl p-4 text-center">
+        <div class="text-xs opacity-70">O₃ (озон)</div>
+        <div class="text-3xl font-bold mt-1">{{ "%.1f"|format(data.pollutants.o3) if data.pollutants.o3 is not none else "--" }}</div>
+        <div class="text-[10px] opacity-60 mt-1">мкг/м³ • ПДК: 100</div>
     </div>
 </section>
 
-<section class="mt-6 grid grid-cols-2 md:grid-cols-5 gap-4">
-    <div class="glass rounded-2xl p-4 text-center"><div class="text-xs opacity-70">PM2.5</div><div class="text-2xl font-semibold">{{ "%.1f"|format(data.pollutants.pm2_5) if data.pollutants.pm2_5 is not none else "--" }}</div></div>
-    <div class="glass rounded-2xl p-4 text-center"><div class="text-xs opacity-70">PM10</div><div class="text-2xl font-semibold">{{ "%.1f"|format(data.pollutants.pm10) if data.pollutants.pm10 is not none else "--" }}</div></div>
-    <div class="glass rounded-2xl p-4 text-center"><div class="text-xs opacity-70">NO2</div><div class="text-2xl font-semibold">{{ "%.1f"|format(data.pollutants.no2) if data.pollutants.no2 is not none else "--" }}</div></div>
-    <div class="glass rounded-2xl p-4 text-center"><div class="text-xs opacity-70">SO2</div><div class="text-2xl font-semibold">{{ "%.1f"|format(data.pollutants.so2) if data.pollutants.so2 is not none else "--" }}</div></div>
-    <div class="glass rounded-2xl p-4 text-center"><div class="text-xs opacity-70">O3</div><div class="text-2xl font-semibold">{{ "%.1f"|format(data.pollutants.o3) if data.pollutants.o3 is not none else "--" }}</div></div>
-</section>
-
-<section class="mt-6 grid grid-cols-1 xl:grid-cols-2 gap-6">
-    <div class="glass rounded-3xl p-6" id="forecast-section">
-        <div class="flex items-center justify-between mb-4">
-            <h3 class="text-xl font-semibold">Прогноз</h3>
-            <div class="flex gap-2">
+<!-- Visual Forecast & History Section -->
+<section class="mt-6 grid grid-cols-1 xl:grid-cols-3 gap-6">
+    <!-- Visual Interactive Forecast Chart (AirTrace v3 Major Upgrade) -->
+    <div class="xl:col-span-2 glass rounded-3xl p-6" id="forecast-section">
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
+            <div>
+                <h3 class="text-xl font-bold flex items-center gap-2">
+                    <i data-lucide="trending-up" class="w-5 h-5 text-sky-400"></i>
+                    <span>Интерактивный прогноз качества воздуха</span>
+                </h3>
+                <p class="text-xs opacity-70">Динамика AQI с линиями безопасности SanPiN и подсказками по часам</p>
+            </div>
+            <div class="flex items-center gap-2">
                 {% if is_custom %}
-                <a href="/custom?lat={{ current_city.lat }}&lon={{ current_city.lon }}&city_name={{ current_city.name | urlencode }}&forecast_hours=24#forecast-section" class="btn-glass rounded-lg px-3 py-1 text-sm {% if selected_forecast_hours == 24 %}ring-2 ring-white/35{% endif %}" aria-pressed="{{ 'true' if selected_forecast_hours == 24 else 'false' }}">24h</a>
-                <a href="/custom?lat={{ current_city.lat }}&lon={{ current_city.lon }}&city_name={{ current_city.name | urlencode }}&forecast_hours=48#forecast-section" class="btn-glass rounded-lg px-3 py-1 text-sm {% if selected_forecast_hours == 48 %}ring-2 ring-white/35{% endif %}" aria-pressed="{{ 'true' if selected_forecast_hours == 48 else 'false' }}">48h</a>
+                <a href="/custom?lat={{ current_city.lat }}&lon={{ current_city.lon }}&city_name={{ current_city.name | urlencode }}&forecast_hours=24#forecast-section" class="btn-glass rounded-xl px-3 py-1.5 text-xs {% if selected_forecast_hours == 24 %}bg-white/25 border-white/40 font-bold{% endif %}">24 часа</a>
+                <a href="/custom?lat={{ current_city.lat }}&lon={{ current_city.lon }}&city_name={{ current_city.name | urlencode }}&forecast_hours=48#forecast-section" class="btn-glass rounded-xl px-3 py-1.5 text-xs {% if selected_forecast_hours == 48 %}bg-white/25 border-white/40 font-bold{% endif %}">48 часов</a>
                 {% else %}
-                <a href="/city/{{ city_key }}?forecast_hours=24#forecast-section" class="btn-glass rounded-lg px-3 py-1 text-sm {% if selected_forecast_hours == 24 %}ring-2 ring-white/35{% endif %}" aria-pressed="{{ 'true' if selected_forecast_hours == 24 else 'false' }}">24h</a>
-                <a href="/city/{{ city_key }}?forecast_hours=48#forecast-section" class="btn-glass rounded-lg px-3 py-1 text-sm {% if selected_forecast_hours == 48 %}ring-2 ring-white/35{% endif %}" aria-pressed="{{ 'true' if selected_forecast_hours == 48 else 'false' }}">48h</a>
+                <a href="/city/{{ city_key }}?forecast_hours=24#forecast-section" class="btn-glass rounded-xl px-3 py-1.5 text-xs {% if selected_forecast_hours == 24 %}bg-white/25 border-white/40 font-bold{% endif %}">24 часа</a>
+                <a href="/city/{{ city_key }}?forecast_hours=48#forecast-section" class="btn-glass rounded-xl px-3 py-1.5 text-xs {% if selected_forecast_hours == 48 %}bg-white/25 border-white/40 font-bold{% endif %}">48 часов</a>
                 {% endif %}
             </div>
         </div>
+
+        <!-- SVG Timeline Chart Container -->
+        <div id="forecast-chart-container" class="relative my-4 p-2 panel rounded-2xl bg-slate-900/40"></div>
+
+        <!-- Day Accordions Detail -->
         {% if forecast_groups %}
-        <div class="space-y-5">
+        <div class="space-y-4 mt-6">
+            <div class="text-xs uppercase tracking-wide opacity-70">Почасовая детализация</div>
             {% for group in forecast_groups %}
-            <section class="space-y-3" data-testid="forecast-day-group">
-                <div class="flex items-center justify-between gap-3 panel rounded-2xl px-4 py-3 bg-white/6 border border-white/10">
-                    <div class="text-sm font-semibold tracking-wide">{{ group.day_label }}</div>
-                    <div class="text-xs opacity-70">{{ group.items | length }} ч.</div>
-                </div>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <details class="panel rounded-2xl overflow-hidden group" {% if loop.first %}open{% endif %} data-testid="forecast-day-group">
+                <summary class="flex items-center justify-between gap-3 px-4 py-3 bg-white/5 hover:bg-white/10 cursor-pointer transition-colors select-none">
+                    <div class="text-sm font-semibold tracking-wide flex items-center gap-2">
+                        <i data-lucide="calendar" class="w-4 h-4 text-teal-300"></i>
+                        <span>{{ group.day_label }}</span>
+                    </div>
+                    <div class="text-xs opacity-70">{{ group.items | length }} часов • Раскрыть</div>
+                </summary>
+                <div class="p-3 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2.5">
                     {% for hour in group.entries %}
-                    <div class="panel rounded-2xl p-4">
-                        <div class="flex items-center justify-between">
-                            <div class="text-sm opacity-75">{{ format_time(hour.timestamp) }}</div>
-                            <div class="text-lg font-semibold">{{ hour.aqi.value }}</div>
+                    <div class="panel rounded-xl p-3 bg-white/5">
+                        <div class="flex items-center justify-between text-xs opacity-75">
+                            <span>{{ format_time(hour.timestamp) }}</span>
+                            <span class="font-bold text-sm" style="color: {{ hour.aqi.color }}">{{ hour.aqi.value }}</span>
                         </div>
-                        <div class="text-sm opacity-80 mt-2">{{ hour.aqi.category }}</div>
-                        <div class="text-xs opacity-70 mt-2">PM2.5: {{ "%.1f"|format(hour.pollutants.pm2_5) if hour.pollutants.pm2_5 is not none else "--" }}</div>
+                        <div class="text-xs opacity-80 mt-1 truncate">{{ hour.aqi.category }}</div>
+                        <div class="text-[10px] opacity-60 mt-1">PM2.5: {{ "%.1f"|format(hour.pollutants.pm2_5) if hour.pollutants.pm2_5 is not none else "--" }}</div>
                     </div>
                     {% endfor %}
                 </div>
-            </section>
+            </details>
             {% endfor %}
         </div>
-        {% else %}
-        <div class="text-sm opacity-70">Данные прогноза пока недоступны.</div>
         {% endif %}
     </div>
 
-    <div class="glass rounded-3xl p-6" id="history-section">
-        <div class="flex items-center justify-between mb-4">
-            <h3 class="text-xl font-semibold">Последняя история</h3>
-            {% if is_custom %}
-            <a href="/history/custom?lat={{ current_city.lat }}&lon={{ current_city.lon }}&city_name={{ current_city.name | urlencode }}" class="btn-glass rounded-lg px-3 py-1 text-sm">Открыть полную историю</a>
-            {% else %}
-            <a href="/history/{{ city_key }}" class="btn-glass rounded-lg px-3 py-1 text-sm">Открыть полную историю</a>
-            {% endif %}
-        </div>
-        <div class="space-y-3" aria-live="polite" aria-busy="false">
-            {% if history %}
-                {% for point in history %}
-                <div class="panel rounded-2xl p-4">
-                    <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-2">
-                        <div>
-                            <div class="text-sm font-semibold">AQI {{ point.aqi }}</div>
-                            <div class="text-xs opacity-70">{{ point.timestamp }}</div>
-                        </div>
-                        <div class="text-xs opacity-80">
-                            {{ translate_source(point.metadata.data_source) }} / {{ translate_freshness(point.metadata.freshness) }} / уверенность {{ "%.2f"|format(point.metadata.confidence or 0) }}
+    <!-- History & Trends Column -->
+    <div class="space-y-6">
+        <div class="glass rounded-3xl p-6" id="history-section">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-xl font-bold flex items-center gap-2">
+                    <i data-lucide="history" class="w-5 h-5 text-amber-300"></i>
+                    <span>История замеров</span>
+                </h3>
+                {% if is_custom %}
+                <a href="/history/custom?lat={{ current_city.lat }}&lon={{ current_city.lon }}&city_name={{ current_city.name | urlencode }}" class="btn-glass rounded-lg px-2.5 py-1 text-xs">Все</a>
+                {% else %}
+                <a href="/history/{{ city_key }}" class="btn-glass rounded-lg px-2.5 py-1 text-xs">Все</a>
+                {% endif %}
+            </div>
+
+            <div class="space-y-2.5" aria-live="polite">
+                {% if history %}
+                    {% for point in history[:6] %}
+                    <div class="panel rounded-xl p-3">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center gap-2">
+                                <span class="font-bold text-sm">AQI {{ point.aqi }}</span>
+                                <span class="text-xs opacity-70">{{ point.timestamp }}</span>
+                            </div>
+                            <span class="text-[10px] px-2 py-0.5 rounded bg-white/10 opacity-80">{{ translate_source(point.metadata.data_source) }}</span>
                         </div>
                     </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="text-sm opacity-70 py-4 text-center">История для этой точки собирается.</div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Trend Card & Exports -->
+        <div class="glass rounded-3xl p-6">
+            <h3 class="text-xl font-bold mb-2 flex items-center gap-2">
+                <i data-lucide="line-chart" class="w-5 h-5 text-teal-300"></i>
+                <span>Тренды и экспорт</span>
+            </h3>
+            <p class="text-xs opacity-80 mb-4">{{ trend_summary or "Сводка по тренду обновляется." }}</p>
+
+            <div class="space-y-2">
+                {% if is_custom %}
+                <a href="/trends/custom?lat={{ current_city.lat }}&lon={{ current_city.lon }}&city_name={{ current_city.name | urlencode }}" class="btn-glass w-full rounded-xl py-2 px-3 text-center block text-sm">Открыть аналитику трендов</a>
+                <div class="flex gap-2 pt-2">
+                    <a href="/export-custom?lat={{ current_city.lat }}&lon={{ current_city.lon }}&city_name={{ current_city.name | urlencode }}&format=csv&hours=24" class="btn-glass flex-1 rounded-xl py-2 text-center text-xs">Скачать CSV</a>
+                    <a href="/export-custom?lat={{ current_city.lat }}&lon={{ current_city.lon }}&city_name={{ current_city.name | urlencode }}&format=json&hours=24" class="btn-glass flex-1 rounded-xl py-2 text-center text-xs">Скачать JSON</a>
                 </div>
-                {% endfor %}
-            {% else %}
-                <div class="text-sm opacity-70">История для этой точки пока недоступна.</div>
-            {% endif %}
+                {% else %}
+                <a href="/trends/{{ city_key }}" class="btn-glass w-full rounded-xl py-2 px-3 text-center block text-sm">Открыть аналитику трендов</a>
+                <a href="/compare?cities={{ city_key }},moscow" class="btn-glass w-full rounded-xl py-2 px-3 text-center block text-sm">Сравнить с Москвой</a>
+                <div class="flex gap-2 pt-2">
+                    <a href="/export/{{ city_key }}?format=csv&hours=24" class="btn-glass flex-1 rounded-xl py-2 text-center text-xs">Скачать CSV</a>
+                    <a href="/export/{{ city_key }}?format=json&hours=24" class="btn-glass flex-1 rounded-xl py-2 text-center text-xs">Скачать JSON</a>
+                </div>
+                {% endif %}
+            </div>
         </div>
     </div>
 </section>
 
-<section class="mt-6 glass rounded-3xl p-6">
-    <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-        <div>
-            <h3 class="text-xl font-semibold mb-2">Сводка по тренду</h3>
-            <p class="text-sm opacity-80">{{ trend_summary or "Сводка по тренду пока недоступна." }}</p>
-        </div>
-        <div class="flex flex-wrap gap-3">
-            {% if is_custom %}
-            <a href="/trends/custom?lat={{ current_city.lat }}&lon={{ current_city.lon }}&city_name={{ current_city.name | urlencode }}" class="btn-glass rounded-xl px-4 py-2">Открыть тренды</a>
-            {% else %}
-            <a href="/trends/{{ city_key }}" class="btn-glass rounded-xl px-4 py-2">Открыть тренды</a>
-            <a href="/compare?cities={{ city_key }},moscow" class="btn-glass rounded-xl px-4 py-2">Сравнить с Москвой</a>
-            {% endif %}
-        </div>
-    </div>
-</section>
+<!-- Inject forecast data for client-side SVG Chart -->
+<script>
+    window.FORECAST_DATA = [
+        {% for hour in forecast %}
+        {
+            time: "{{ format_time(hour.timestamp) }}",
+            aqi: {{ hour.aqi.value }},
+            category: "{{ hour.aqi.category }}",
+            pm25: {{ hour.pollutants.pm2_5 if hour.pollutants.pm2_5 is not none else "null" }}
+        }{% if not loop.last %},{% endif %}
+        {% endfor %}
+    ];
+</script>
 {% endblock %}

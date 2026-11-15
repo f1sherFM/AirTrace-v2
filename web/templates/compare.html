@@ -1,47 +1,83 @@
 {% extends "base.html" %}
 
-{% block title %}{{ title }}{% endblock %}
-{% block location_display %}Сравнение городов{% endblock %}
+{% block title %}{{ title }} — AirTrace v3{% endblock %}
+{% block location_display %}Сравнение качества воздуха в городах{% endblock %}
 
 {% block content %}
-<section class="glass rounded-3xl p-6">
-    <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
+<section class="glass rounded-3xl p-6 md:p-8">
+    <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-6">
         <div>
-            <h2 class="text-2xl font-semibold">Сравнение городов</h2>
-            <p class="text-sm opacity-75">Сравните до трёх городов по текущему AQI, тренду и уверенности в данных.</p>
+            <h2 class="text-2xl font-bold flex items-center gap-2">
+                <i data-lucide="columns-2" class="w-6 h-6 text-teal-300"></i>
+                <span>Сравнение городов России</span>
+            </h2>
+            <p class="text-sm opacity-75 mt-1">Сравните до четырёх городов по текущему индексу AQI, чистоте атмосферы, трендам и надёжности данных.</p>
         </div>
-        <form method="get" action="/compare" class="flex flex-col md:flex-row gap-2">
-            <input type="text" name="cities" value="{{ selected_cities | join(',') }}" class="px-3 py-2 rounded-xl bg-white/10 border border-white/20 min-w-[260px]" placeholder="moscow,spb,surgut">
-            <button type="submit" class="btn-glass rounded-xl px-4 py-2">Обновить</button>
+        <form method="get" action="/compare" class="flex flex-col sm:flex-row gap-2">
+            <input 
+                type="text" 
+                name="cities" 
+                value="{{ selected_cities | join(',') }}" 
+                class="px-4 py-2 rounded-xl bg-white/10 border border-white/20 text-sm min-w-[280px] focus:outline-none focus:ring-2 focus:ring-sky-400" 
+                placeholder="moscow,spb,kazan,krasnoyarsk"
+            >
+            <button type="submit" class="btn-glass rounded-xl px-5 py-2 text-sm font-semibold">Сравнить</button>
         </form>
     </div>
 
-    <div class="grid grid-cols-1 xl:grid-cols-3 gap-5">
+    <!-- Quick Presets -->
+    <div class="flex flex-wrap items-center gap-2 mb-8 text-xs">
+        <span class="opacity-60 mr-1">Быстрые сценарии:</span>
+        <a href="/compare?cities=moscow,spb,kazan" class="btn-glass rounded-lg px-2.5 py-1">Столицы: Москва • СПб • Казань</a>
+        <a href="/compare?cities=ekaterinburg,chelyabinsk,magnitogorsk" class="btn-glass rounded-lg px-2.5 py-1">Урал: Екб • Челябинск • Магнитогорск</a>
+        <a href="/compare?cities=krasnoyarsk,novosibirsk,omsk" class="btn-glass rounded-lg px-2.5 py-1">Сибирь: Красноярск • Новосибирск • Омск</a>
+        <a href="/compare?cities=sochi,krasnodar,rostov" class="btn-glass rounded-lg px-2.5 py-1">Юг: Сочи • Краснодар • Ростов</a>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
         {% for card in compare_cards %}
-        <article class="panel rounded-3xl p-5">
-            <div class="flex items-center justify-between gap-3 mb-4">
-                <div>
-                    <h3 class="text-xl font-semibold">{{ card.city.name }}</h3>
-                    <div class="text-xs opacity-70">{{ card.city_key }}</div>
+        <article class="panel rounded-3xl p-6 flex flex-col justify-between hover:bg-white/10 transition-colors">
+            <div>
+                <div class="flex items-center justify-between gap-3 mb-4">
+                    <div>
+                        <h3 class="text-2xl font-bold text-white">{{ card.city.name }}</h3>
+                        <div class="text-xs opacity-65">{{ card.city_key }} • {{ card.city.region or "Россия" }}</div>
+                    </div>
+                    <a href="/city/{{ card.city_key }}" class="btn-glass rounded-xl px-3 py-1.5 text-xs font-semibold flex items-center gap-1">
+                        <span>Открыть</span>
+                        <i data-lucide="arrow-right" class="w-3.5 h-3.5"></i>
+                    </a>
                 </div>
-                <a href="/city/{{ card.city_key }}" class="btn-glass rounded-xl px-3 py-2 text-sm">Открыть</a>
+
+                <!-- AQI Gauge Bar -->
+                <div class="glass rounded-2xl p-4 mb-4">
+                    <div class="flex items-baseline justify-between mb-2">
+                        <div class="text-xs opacity-70 mb-1">AQI сейчас</div>
+                        <span class="text-xs font-semibold" style="color: {{ card.current.aqi.color }}">{{ card.current.aqi.category }}</span>
+                    </div>
+                    <div class="text-4xl font-black mb-2" style="color: {{ card.current.aqi.color }}">{{ card.current.aqi.value }}</div>
+                    
+                    <!-- Progress bar -->
+                    <div class="w-full bg-white/10 rounded-full h-2 overflow-hidden">
+                        <div class="h-2 rounded-full transition-all" style="width: {{ [100, (card.current.aqi.value / 2)] | min }}%; background-color: {{ card.current.aqi.color }}"></div>
+                    </div>
+                </div>
+
+                <!-- Trend & NMU status -->
+                <div class="panel rounded-2xl p-4 mb-4 space-y-2">
+                    <div class="flex justify-between items-center text-xs">
+                        <span class="opacity-70">Динамика тренда:</span>
+                        <span class="font-bold text-teal-200">{{ translate_trend(card.trend_payload.trend if card.trend_payload else "insufficient_data") }}</span>
+                    </div>
+                    <p class="text-xs opacity-75">{{ card.trend_payload.summary if card.trend_payload else "Сводка формируется" }}</p>
+                </div>
             </div>
-            <div class="grid grid-cols-2 gap-3 mb-4">
-                <div class="glass rounded-2xl p-4">
-                    <div class="text-xs opacity-70 mb-1">AQI сейчас</div>
-                    <div class="text-3xl font-bold">{{ card.current.aqi.value }}</div>
-                    <div class="text-sm opacity-80">{{ card.current.aqi.category }}</div>
-                </div>
-                <div class="glass rounded-2xl p-4">
-                    <div class="text-xs opacity-70 mb-1">Тренд</div>
-                    <div class="text-xl font-semibold">{{ translate_trend(card.trend_payload.trend if card.trend_payload else "insufficient_data") }}</div>
-                    <div class="text-xs opacity-75 mt-2">{{ card.trend_payload.summary if card.trend_payload else "Сводка пока недоступна" }}</div>
-                </div>
-            </div>
-            <div class="space-y-2 text-sm" data-testid="explainability-block">
+
+            <!-- Explainability Footer -->
+            <div class="space-y-2 text-xs pt-4 border-t border-white/10" data-testid="explainability-block">
                 <div class="flex justify-between gap-3"><span class="opacity-70">Источник</span><span>{{ translate_source(card.explainability.source) }}</span></div>
                 <div class="flex justify-between gap-3"><span class="opacity-70">Свежесть</span><span>{{ translate_freshness(card.explainability.freshness) }}</span></div>
-                <div class="flex justify-between gap-3"><span class="opacity-70">Уверенность</span><span>{{ "%.2f"|format(card.explainability.confidence or 0) }}</span></div>
+                <div class="flex justify-between gap-3"><span class="opacity-70">Уверенность</span><span class="font-bold">{{ "%.2f"|format(card.explainability.confidence or 0) }}</span></div>
             </div>
         </article>
         {% endfor %}

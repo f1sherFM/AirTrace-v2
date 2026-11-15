@@ -1,59 +1,91 @@
 {% extends "base.html" %}
 
-{% block title %}{{ title }}{% endblock %}
-{% block location_display %}{{ current_city.name }} — тренды{% endblock %}
+{% block title %}{{ title }} — AirTrace v3{% endblock %}
+{% block location_display %}{{ current_city.name }} — тренды и динамика{% endblock %}
 
 {% block content %}
-<section class="glass rounded-3xl p-6">
+<section class="glass rounded-3xl p-6 md:p-8">
     <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
         <div>
-            <h2 class="text-2xl font-semibold">Тренды</h2>
-            <p class="text-sm opacity-75">Дневные агрегаты из исторического слоя хранения.</p>
+            <h2 class="text-2xl font-bold flex items-center gap-2">
+                <i data-lucide="line-chart" class="w-6 h-6 text-teal-300"></i>
+                <span>Аналитика и тренды AQI</span>
+            </h2>
+            <p class="text-sm opacity-75">Дневные агрегаты из подтвержденного слоя исторического хранения.</p>
         </div>
         <div class="flex gap-2">
             {% if is_custom %}
-            <a href="/trends/custom?lat={{ current_city.lat }}&lon={{ current_city.lon }}&city_name={{ current_city.name | urlencode }}&range=7d" class="btn-glass rounded-xl px-4 py-2 text-sm {% if selected_range == '7d' %}bg-white/25{% endif %}">7d</a>
-            <a href="/trends/custom?lat={{ current_city.lat }}&lon={{ current_city.lon }}&city_name={{ current_city.name | urlencode }}&range=30d" class="btn-glass rounded-xl px-4 py-2 text-sm {% if selected_range == '30d' %}bg-white/25{% endif %}">30d</a>
+            <a href="/trends/custom?lat={{ current_city.lat }}&lon={{ current_city.lon }}&city_name={{ current_city.name | urlencode }}&range=7d" class="btn-glass rounded-xl px-4 py-2 text-sm {% if selected_range == '7d' %}bg-white/25 border-white/40 font-bold{% endif %}">7 дней</a>
+            <a href="/trends/custom?lat={{ current_city.lat }}&lon={{ current_city.lon }}&city_name={{ current_city.name | urlencode }}&range=30d" class="btn-glass rounded-xl px-4 py-2 text-sm {% if selected_range == '30d' %}bg-white/25 border-white/40 font-bold{% endif %}">30 дней</a>
             {% else %}
-            <a href="/trends/{{ city_key }}?range=7d" class="btn-glass rounded-xl px-4 py-2 text-sm {% if selected_range == '7d' %}bg-white/25{% endif %}">7d</a>
-            <a href="/trends/{{ city_key }}?range=30d" class="btn-glass rounded-xl px-4 py-2 text-sm {% if selected_range == '30d' %}bg-white/25{% endif %}">30d</a>
+            <a href="/trends/{{ city_key }}?range=7d" class="btn-glass rounded-xl px-4 py-2 text-sm {% if selected_range == '7d' %}bg-white/25 border-white/40 font-bold{% endif %}">7 дней</a>
+            <a href="/trends/{{ city_key }}?range=30d" class="btn-glass rounded-xl px-4 py-2 text-sm {% if selected_range == '30d' %}bg-white/25 border-white/40 font-bold{% endif %}">30 дней</a>
             {% endif %}
         </div>
     </div>
 
+    <!-- Summary and Explainability Cards -->
     <div class="grid grid-cols-1 xl:grid-cols-3 gap-6 mb-6">
         <div class="xl:col-span-2 panel rounded-2xl p-5">
-            <div class="text-xs uppercase tracking-wide opacity-70 mb-2">Сводка</div>
-            <div class="text-lg font-semibold mb-2">{{ translate_trend(trend_payload.trend if trend_payload else "insufficient_data") }}</div>
-            <p class="text-sm opacity-80">{{ trend_payload.summary if trend_payload else "Сводка по тренду пока недоступна." }}</p>
+            <div class="text-xs uppercase tracking-wide opacity-70 mb-2">Направление тренда</div>
+            <div class="text-2xl font-bold mb-2 text-teal-200">{{ translate_trend(trend_payload.trend if trend_payload else "insufficient_data") }}</div>
+            <p class="text-sm opacity-85 leading-relaxed">{{ trend_payload.summary if trend_payload else "Сводка по тренду пока недоступна." }}</p>
         </div>
         <div class="panel rounded-2xl p-5" data-testid="explainability-block">
-            <div class="text-xs uppercase tracking-wide opacity-70 mb-3">Пояснение к данным</div>
+            <div class="text-xs uppercase tracking-wide opacity-70 mb-3 flex items-center gap-1.5">
+                <i data-lucide="info" class="w-4 h-4 text-teal-300"></i>
+                <span>Пояснение к данным</span>
+            </div>
             <div class="space-y-2 text-sm">
-                <div><span class="opacity-70">Источник:</span> {{ translate_source(explainability.source) }}</div>
-                <div><span class="opacity-70">Свежесть:</span> {{ translate_freshness(explainability.freshness) }}</div>
-                <div><span class="opacity-70">Уверенность:</span> {{ "%.2f"|format(explainability.confidence or 0) }}</div>
+                <div><span class="opacity-70">Источник:</span> <span class="font-medium">{{ translate_source(explainability.source) }}</span></div>
+                <div><span class="opacity-70">Свежесть:</span> <span class="font-medium">{{ translate_freshness(explainability.freshness) }}</span></div>
+                <div><span class="opacity-70">Уверенность:</span> <span class="font-medium">{{ "%.2f"|format(explainability.confidence or 0) }}</span></div>
             </div>
         </div>
     </div>
 
+    <!-- Visual Interactive SVG Trends Chart Container -->
+    {% if trend_payload and trend_payload.points and (trend_payload.points|length) >= 2 %}
+    <div class="mb-6">
+        <div class="text-xs uppercase tracking-wide opacity-70 mb-2">График диапазона (мин • среднее • макс)</div>
+        <div id="trends-chart-container" class="panel rounded-2xl p-3 bg-slate-900/40"></div>
+    </div>
+    {% endif %}
+
+    <!-- Points Table -->
     <div class="space-y-3">
         {% if trend_payload and trend_payload.points %}
             {% for point in trend_payload.points %}
             <div class="panel rounded-2xl p-4">
-                <div class="grid grid-cols-2 md:grid-cols-6 gap-3 text-sm">
-                    <div><div class="opacity-60 text-xs">день</div><div>{{ point.timestamp[:10] }}</div></div>
-                    <div><div class="opacity-60 text-xs">aqi min</div><div>{{ point.aqi_min }}</div></div>
-                    <div><div class="opacity-60 text-xs">aqi max</div><div>{{ point.aqi_max }}</div></div>
-                    <div><div class="opacity-60 text-xs">aqi avg</div><div>{{ "%.1f"|format(point.aqi_avg) }}</div></div>
-                    <div><div class="opacity-60 text-xs">замеров</div><div>{{ point.sample_count }}</div></div>
-                    <div><div class="opacity-60 text-xs">уверенность</div><div>{{ "%.2f"|format(point.avg_confidence) }}</div></div>
+                <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3 text-sm">
+                    <div><div class="opacity-60 text-xs">День</div><div class="font-semibold">{{ point.timestamp[:10] }}</div></div>
+                    <div><div class="opacity-60 text-xs">AQI Мин</div><div class="font-bold text-emerald-300">{{ point.aqi_min }}</div></div>
+                    <div><div class="opacity-60 text-xs">AQI Макс</div><div class="font-bold text-rose-300">{{ point.aqi_max }}</div></div>
+                    <div><div class="opacity-60 text-xs">aqi avg</div><div class="font-bold text-sky-300">{{ "%.1f"|format(point.aqi_avg) }}</div></div>
+                    <div><div class="opacity-60 text-xs">Замеров</div><div>{{ point.sample_count }}</div></div>
+                    <div><div class="opacity-60 text-xs">Уверенность</div><div>{{ "%.2f"|format(point.avg_confidence) }}</div></div>
                 </div>
             </div>
             {% endfor %}
         {% else %}
-        <div class="text-sm opacity-70">Точки тренда пока недоступны.</div>
+        <div class="text-sm opacity-70 py-6 text-center">Точки тренда накапливаются в базе данных.</div>
         {% endif %}
     </div>
 </section>
+
+<script>
+    window.TRENDS_DATA = [
+        {% if trend_payload and trend_payload.points %}
+        {% for point in trend_payload.points %}
+        {
+            label: "{{ point.timestamp[5:10] }}",
+            aqi: {{ point.aqi_avg }},
+            aqi_avg: {{ point.aqi_avg }},
+            aqi_min: {{ point.aqi_min }},
+            aqi_max: {{ point.aqi_max }}
+        }{% if not loop.last %},{% endif %}
+        {% endfor %}
+        {% endif %}
+    ];
+</script>
 {% endblock %}
