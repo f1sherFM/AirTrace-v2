@@ -10,6 +10,10 @@
     background-color: #0b1220 !important;
     font-family: 'IBM Plex Sans', sans-serif !important;
 }
+/* Pure CSS dark theme filter for OpenStreetMap tiles (no API keys, zero watermarks) */
+.leaflet-tile-pane {
+    filter: invert(100%) hue-rotate(180deg) brightness(80%) contrast(115%) grayscale(30%);
+}
 .leaflet-popup-content-wrapper {
     background: rgba(15, 23, 42, 0.95) !important;
     backdrop-filter: blur(16px);
@@ -284,7 +288,7 @@
                     <span class="inline-flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-slate-400"></span> Требует замера</span>
                 </div>
                 <div class="text-[11px] opacity-60 italic">
-                    OpenStreetMap & CARTO Dark Matter • Кликните на маркер для быстрого перехода
+                    OpenStreetMap • Кликните на маркер для детального прогноза и рекомендаций
                 </div>
             </div>
         </div>
