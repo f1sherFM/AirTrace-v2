@@ -1,0 +1,38 @@
+# yaml-language-server: $schema=https://coderabbit.ai/integrations/schema.v2.json
+language: "ru-RU"
+tone_instructions: "Будь предельно конструктивен, вежлив и краток. Фокусируйся на безопасности (XSS, утечки), производительности FastAPI (async IO), чистоте доменной логики и обратной совместимости API v2/v3."
+early_access: false
+
+reviews:
+  profile: "chill"
+  request_changes_workflow: false
+  high_level_summary: true
+  poem: false
+  review_status: true
+  collapse_walkthrough: false
+  auto_review:
+    enabled: true
+    drafts: false
+    base_branches:
+      - "main"
+      - "v3"
+      - "feature/.*"
+  path_filters:
+    - "!**/*.min.js"
+    - "!**/vendor/**"
+    - "!**/.venv/**"
+    - "!**/.pytest_cache/**"
+    - "!**/contract_snapshots/**"
+    - "!**/logs/**"
+  path_instructions:
+    - path: "api/v3/**/*.py"
+      instructions: "Проверяй обратную совместимость, правильность валидации Pydantic v2, отсутствие синхронного блокирующего IO в async роутах."
+    - path: "domain/**/*.py"
+      instructions: "Доменная логика (advisory, confidence) должна быть чистой, детерминированной и без side-effects."
+    - path: "web/static/js/**/*.js"
+      instructions: "Строго предотвращай XSS: запрещён небезопасный innerHTML с пользовательскими или API данными без escapeHtml(). Проверяй лимиты localStorage."
+    - path: "application/web/**/*.py"
+      instructions: "Проверяй безопасность передачи параметров в Jinja2 шаблоны и отсутствие подавления исключений (bare except)."
+
+chat:
+  auto_reply: true
