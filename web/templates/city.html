@@ -20,6 +20,17 @@
 </section>
 {% endif %}
 
+{% if not is_custom %}
+<div id="city-meta" 
+    data-city-key="{{ city_key }}" 
+    data-city-name="{{ current_city.name }}" 
+    data-aqi="{{ data.aqi.value }}" 
+    data-category="{{ data.aqi.category }}" 
+    data-color="{{ data.aqi.color }}" 
+    class="hidden"
+></div>
+{% endif %}
+
 <!-- Main Current Status Hero Section -->
 <section class="grid grid-cols-1 xl:grid-cols-3 gap-6">
     <div class="xl:col-span-2 glass rounded-3xl p-6 md:p-8 relative overflow-hidden">

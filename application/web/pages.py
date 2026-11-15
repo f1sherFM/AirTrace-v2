@@ -297,6 +297,23 @@ async def build_city_page_context(
     history_items = normalize_history_payload((history_raw or {}).get("items", [])[:12])
     explainability = build_explainability(current)
     data_status_notice = build_data_status_notice(current)
+    if not is_custom and city_key:
+        try:
+            from application.queries.ranking import record_city_ranking_snapshot
+            record_city_ranking_snapshot(
+                key=city_key,
+                name=city.get("name", city_key),
+                lat=lat,
+                lon=lon,
+                aqi=current.get("aqi", {}).get("value", 0),
+                aqi_category=current.get("aqi", {}).get("category", ""),
+                aqi_color=current.get("aqi", {}).get("color", "#00E400"),
+                region=city.get("region"),
+                nmu_level=current.get("nmu_risk") or "none",
+                pm2_5=current.get("pollutants", {}).get("pm2_5") if isinstance(current.get("pollutants"), dict) else None,
+            )
+        except Exception:
+            pass
     from domain.advisory import generate_activity_advisories
     advisory = generate_activity_advisories(
         aqi_value=current.get("aqi", {}).get("value", 0),

@@ -136,6 +136,10 @@ def test_v3_forecast_with_summary():
 
 
 def test_v3_national_ranking():
+    from application.queries.ranking import record_city_ranking_snapshot
+    record_city_ranking_snapshot(key="moscow", name="Москва", lat=55.75, lon=37.61, aqi=42, aqi_category="Хорошо", aqi_color="#00E400")
+    record_city_ranking_snapshot(key="spb", name="Санкт-Петербург", lat=59.93, lon=30.33, aqi=28, aqi_category="Хорошо", aqi_color="#00E400")
+
     response = client.get("/v3/cities/ranking")
     assert response.status_code == 200
     assert response.headers["X-AirTrace-API-Version"] == "3"

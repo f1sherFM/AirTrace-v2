@@ -98,11 +98,12 @@
                 <i data-lucide="award" class="w-6 h-6 text-amber-300"></i>
                 <span>Национальный рейтинг качества воздуха в РФ</span>
             </h3>
-            <p class="text-sm opacity-75 mt-1">{{ ranking.summary }} Средний AQI: <strong>{{ ranking.average_aqi }}</strong></p>
+            <p class="text-sm opacity-75 mt-1">{{ ranking.summary }} {% if ranking.cities_count > 0 %}Средний AQI: <strong>{{ ranking.average_aqi }}</strong>{% endif %}</p>
         </div>
         <span class="text-xs opacity-60">Обновлено: {{ ranking.timestamp[:16].replace("T", " ") }} UTC</span>
     </div>
 
+    {% if ranking.cities_count > 0 %}
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <!-- Top Cleanest Cities -->
         <div class="panel rounded-2xl p-5">
@@ -152,6 +153,13 @@
             </div>
         </div>
     </div>
+    {% else %}
+    <div class="panel rounded-2xl p-6 text-center">
+        <i data-lucide="activity" class="w-8 h-8 text-teal-300 mx-auto mb-2 opacity-80"></i>
+        <div class="font-semibold text-base mb-1">Национальный рейтинг формируется</div>
+        <p class="text-sm opacity-70 max-w-lg mx-auto">Откройте интересующие города в каталоге ниже, чтобы выполнить актуальные онлайн-замеры качества воздуха.</p>
+    </div>
+    {% endif %}
 </section>
 {% endif %}
 
@@ -164,17 +172,27 @@
 
     <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4">
         {% for key, city in cities.items() %}
-        <a href="/city/{{ key }}" class="glass rounded-2xl p-4 hover:bg-white/20 transition-all group flex items-center justify-between">
-            <div>
-                <div class="text-base font-semibold group-hover:text-teal-200 transition-colors flex items-center gap-1.5">
+        <a href="/city/{{ key }}" class="glass rounded-2xl p-4 hover:bg-white/20 transition-all group flex items-center justify-between city-catalog-card" data-city-key="{{ key }}">
+            <div class="min-w-0 pr-2">
+                <div class="text-base font-semibold group-hover:text-teal-200 transition-colors flex items-center gap-1.5 truncate">
                     <span>{{ city.name }}</span>
                     {% if city.is_major %}
-                    <span class="w-1.5 h-1.5 rounded-full bg-teal-300"></span>
+                    <span class="w-1.5 h-1.5 rounded-full bg-teal-300 flex-shrink-0" title="Крупный город"></span>
                     {% endif %}
                 </div>
-                <div class="text-xs opacity-65 mt-0.5">{{ city.region or ("%.2f, %.2f"|format(city.lat, city.lon)) }}</div>
+                <div class="text-xs opacity-65 mt-0.5 truncate">{{ city.region or ("%.2f, %.2f"|format(city.lat, city.lon)) }}</div>
+                
+                <div class="city-status-slot mt-2">
+                    <span class="text-[11px] px-2 py-0.5 rounded-md bg-white/10 text-white/60 border border-white/10 flex items-center gap-1.5 w-fit">
+                        <span class="w-1.5 h-1.5 rounded-full bg-slate-400"></span>
+                        <span>Требует замера</span>
+                    </span>
+                </div>
             </div>
-            <i data-lucide="arrow-up-right" class="w-4 h-4 opacity-50 group-hover:opacity-100 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-all text-teal-300"></i>
+            
+            <div class="city-aqi-badge-slot flex items-center gap-2 flex-shrink-0">
+                <i data-lucide="arrow-up-right" class="w-4 h-4 opacity-50 group-hover:opacity-100 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-all text-teal-300"></i>
+            </div>
         </a>
         {% endfor %}
 

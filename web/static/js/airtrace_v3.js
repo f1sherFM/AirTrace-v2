@@ -440,6 +440,82 @@
         `;
     }
 
+    // -------------------------------------------------------------
+    // 5. Client-side Visited Cities Storage & Catalog Card Hydration
+    // -------------------------------------------------------------
+    function saveCurrentCityVisit() {
+        const meta = document.getElementById('city-meta');
+        if (!meta) return;
+        const key = meta.dataset.cityKey;
+        if (!key) return;
+        const aqi = parseInt(meta.dataset.aqi, 10);
+        if (isNaN(aqi)) return;
+        const category = meta.dataset.category || 'Хорошо';
+        const color = meta.dataset.color || '#10b981';
+        const name = meta.dataset.cityName || key;
+        const now = new Date();
+        const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+        try {
+            const raw = localStorage.getItem('airtrace_city_visits');
+            const visits = raw ? JSON.parse(raw) : {};
+            visits[key] = {
+                key: key,
+                name: name,
+                aqi: aqi,
+                category: category,
+                color: color,
+                time: timeStr,
+                timestamp: Date.now()
+            };
+            localStorage.setItem('airtrace_city_visits', JSON.stringify(visits));
+        } catch (e) {
+            console.error('Failed to save city visit', e);
+        }
+    }
+
+    function hydrateCatalogCardsFromLocalStorage() {
+        const cards = document.querySelectorAll('.city-catalog-card');
+        if (!cards || cards.length === 0) return;
+
+        let visits = {};
+        try {
+            const raw = localStorage.getItem('airtrace_city_visits');
+            if (raw) visits = JSON.parse(raw);
+        } catch (e) {
+            return;
+        }
+
+        cards.forEach(function (card) {
+            const key = card.dataset.cityKey;
+            const visit = visits[key];
+            if (visit && visit.aqi !== undefined) {
+                const statusSlot = card.querySelector('.city-status-slot');
+                const aqiSlot = card.querySelector('.city-aqi-badge-slot');
+
+                if (statusSlot) {
+                    statusSlot.innerHTML = `
+                        <span class="text-[11px] px-2 py-0.5 rounded-md font-medium flex items-center gap-1.5 w-fit shadow-sm" style="background-color: ${visit.color}25; border: 1px solid ${visit.color}55; color: #ffffff;">
+                            <span class="w-1.5 h-1.5 rounded-full" style="background-color: ${visit.color}"></span>
+                            <span>AQI ${visit.aqi} • ${visit.category} (${visit.time})</span>
+                        </span>
+                    `;
+                }
+
+                if (aqiSlot) {
+                    aqiSlot.innerHTML = `
+                        <span class="text-xl font-black tracking-tight" style="color: ${visit.color}">${visit.aqi}</span>
+                        <i data-lucide="arrow-up-right" class="w-4 h-4 opacity-70 group-hover:opacity-100 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-all text-teal-300"></i>
+                    `;
+                }
+            }
+        });
+
+        if (window.lucide) {
+            window.lucide.createIcons();
+        }
+    }
+
     // Initialize all components on DOM ready
     document.addEventListener('DOMContentLoaded', function () {
         initCitySearch();
@@ -447,6 +523,8 @@
         initFavoriteButton();
         renderForecastChart();
         renderTrendsChart();
+        saveCurrentCityVisit();
+        hydrateCatalogCardsFromLocalStorage();
 
         // Re-render charts on window resize
         let resizeTimer = null;
@@ -466,5 +544,7 @@
         initFavoriteButton();
         renderForecastChart();
         renderTrendsChart();
+        saveCurrentCityVisit();
+        hydrateCatalogCardsFromLocalStorage();
     }
 })();
