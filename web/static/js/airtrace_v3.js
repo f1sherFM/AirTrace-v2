@@ -946,13 +946,19 @@
         if (!chartContainer || !forecastScript) return;
         let seriesData = [];
         try {
-            seriesData = JSON.parse(forecastScript.textContent);
+            const rawText = forecastScript.textContent ? forecastScript.textContent.trim() : '';
+            if (rawText) {
+                seriesData = JSON.parse(rawText);
+            }
         } catch (e) {
             console.error('Failed to parse compare forecast data', e);
-            return;
+            seriesData = [];
         }
 
-        if (!seriesData || seriesData.length === 0) return;
+        if (!seriesData || seriesData.length === 0) {
+            chartContainer.innerHTML = '<div class="p-6 text-center text-xs opacity-60">Данные прогноза формируются</div>';
+            return;
+        }
 
         const maxLenSeries = seriesData.reduce((prev, curr) => {
             const prevLen = (prev && prev.points) ? prev.points.length : 0;

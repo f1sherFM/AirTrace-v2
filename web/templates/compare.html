@@ -298,6 +298,7 @@
         {% endfor %}
     </div>
 </section>
+{% endblock %}
 
 {% block extra_scripts %}
 <script id="compare-forecast-data" type="application/json">
@@ -306,5 +307,4 @@
 <script id="compare-all-cities-data" type="application/json">
 {{ all_cities_json|safe }}
 </script>
-{% endblock %}
 {% endblock %}
