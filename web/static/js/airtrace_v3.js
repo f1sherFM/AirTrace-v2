@@ -606,6 +606,254 @@
         }
     }
 
+    // -------------------------------------------------------------
+    // 6. Interactive Air Quality Map (AirTrace v3.1 Feature)
+    // -------------------------------------------------------------
+    let leafletMapInstance = null;
+    let mapMarkerLayer = null;
+
+    function initInteractiveMap() {
+        const mapContainer = document.getElementById('airtrace-russia-map');
+        const dataScript = document.getElementById('cities-map-data');
+        if (!mapContainer || !dataScript) return;
+
+        let cities = [];
+        try {
+            cities = JSON.parse(dataScript.textContent);
+        } catch (e) {
+            console.error('Failed to parse cities map data', e);
+            return;
+        }
+
+        const gridBtn = document.getElementById('catalog-view-grid-btn');
+        const mapBtn = document.getElementById('catalog-view-map-btn');
+        const gridWrapper = document.getElementById('catalog-grid-wrapper');
+        const mapWrapper = document.getElementById('catalog-map-wrapper');
+        const resetBoundsBtn = document.getElementById('map-reset-bounds-btn');
+        const filterChips = document.querySelectorAll('.map-filter-chip');
+
+        function setViewMode(mode) {
+            if (mode === 'map') {
+                if (gridWrapper) gridWrapper.classList.add('hidden');
+                if (mapWrapper) mapWrapper.classList.remove('hidden');
+                if (mapBtn) {
+                    mapBtn.classList.add('bg-white/20', 'text-white', 'shadow-sm');
+                    mapBtn.classList.remove('text-white/70');
+                    mapBtn.setAttribute('aria-selected', 'true');
+                }
+                if (gridBtn) {
+                    gridBtn.classList.remove('bg-white/20', 'text-white', 'shadow-sm');
+                    gridBtn.classList.add('text-white/70');
+                    gridBtn.setAttribute('aria-selected', 'false');
+                }
+                localStorage.setItem('airtrace_catalog_view', 'map');
+
+                if (!leafletMapInstance) {
+                    setupMap();
+                } else {
+                    setTimeout(() => {
+                        leafletMapInstance.invalidateSize();
+                    }, 120);
+                }
+            } else {
+                if (mapWrapper) mapWrapper.classList.add('hidden');
+                if (gridWrapper) gridWrapper.classList.remove('hidden');
+                if (gridBtn) {
+                    gridBtn.classList.add('bg-white/20', 'text-white', 'shadow-sm');
+                    gridBtn.classList.remove('text-white/70');
+                    gridBtn.setAttribute('aria-selected', 'true');
+                }
+                if (mapBtn) {
+                    mapBtn.classList.remove('bg-white/20', 'text-white', 'shadow-sm');
+                    mapBtn.classList.add('text-white/70');
+                    mapBtn.setAttribute('aria-selected', 'false');
+                }
+                localStorage.setItem('airtrace_catalog_view', 'grid');
+            }
+        }
+
+        if (gridBtn && mapBtn) {
+            gridBtn.addEventListener('click', () => setViewMode('grid'));
+            mapBtn.addEventListener('click', () => setViewMode('map'));
+        }
+
+        // Restore saved view preference
+        const savedView = localStorage.getItem('airtrace_catalog_view');
+        if (savedView === 'map') {
+            setViewMode('map');
+        }
+
+        function setupMap() {
+            if (typeof L === 'undefined') {
+                mapContainer.innerHTML = '<div class="p-8 text-center text-sm text-white/60">Загрузка картографического движка...</div>';
+                return;
+            }
+
+            mapContainer.innerHTML = '';
+
+            leafletMapInstance = L.map('airtrace-russia-map', {
+                center: [61.5, 90.0],
+                zoom: 3,
+                minZoom: 2,
+                maxZoom: 14,
+                zoomControl: true,
+                attributionControl: false
+            });
+
+            L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+                maxZoom: 19,
+                subdomains: 'abcd'
+            }).addTo(leafletMapInstance);
+
+            mapMarkerLayer = L.layerGroup().addTo(leafletMapInstance);
+
+            renderMapMarkers('all');
+
+            if (resetBoundsBtn) {
+                resetBoundsBtn.addEventListener('click', () => {
+                    if (leafletMapInstance) {
+                        leafletMapInstance.setView([61.5, 90.0], 3);
+                    }
+                });
+            }
+
+            filterChips.forEach(chip => {
+                chip.addEventListener('click', function () {
+                    filterChips.forEach(c => {
+                        c.classList.remove('active', 'bg-teal-500/30', 'text-teal-200', 'border-teal-400/40');
+                        c.classList.add('bg-white/10', 'text-white/80', 'border-white/10');
+                    });
+                    this.classList.add('active', 'bg-teal-500/30', 'text-teal-200', 'border-teal-400/40');
+                    this.classList.remove('bg-white/10', 'text-white/80', 'border-white/10');
+                    const filter = this.getAttribute('data-filter') || 'all';
+                    renderMapMarkers(filter);
+                });
+            });
+        }
+
+        function renderMapMarkers(filter) {
+            if (!mapMarkerLayer || !leafletMapInstance) return;
+            mapMarkerLayer.clearLayers();
+
+            const favs = getFavorites();
+            let visits = {};
+            try {
+                const raw = localStorage.getItem('airtrace_city_visits');
+                if (raw) visits = JSON.parse(raw);
+            } catch (e) {}
+
+            cities.forEach(city => {
+                const isFav = favs.some(f => f.key === city.key);
+                const visit = visits[city.key];
+
+                if (filter === 'major' && !city.is_major) return;
+                if (filter === 'favorites' && !isFav) return;
+                if (filter === 'attention') {
+                    const hasHighAqi = visit && visit.aqi > 50;
+                    if (!hasHighAqi) return;
+                }
+
+                let color = '#38bdf8';
+                let displayAqi = '•';
+                let hasRealReading = false;
+                let category = 'Требует замера';
+
+                if (visit && visit.aqi !== undefined) {
+                    hasRealReading = true;
+                    color = visit.color || (visit.aqi <= 50 ? '#10b981' : visit.aqi <= 100 ? '#f59e0b' : visit.aqi <= 150 ? '#f97316' : '#ef4444');
+                    displayAqi = String(visit.aqi);
+                    category = visit.category || 'Замер выполнен';
+                }
+
+                const markerSize = hasRealReading ? 32 : (city.is_major ? 26 : 20);
+                const pulseRing = city.is_major ? `<div class="pulse-ring" style="border: 2px solid ${color};"></div>` : '';
+
+                const iconHtml = `
+                    <div class="map-marker-pin relative flex items-center justify-center cursor-pointer select-none" style="width: ${markerSize}px; height: ${markerSize}px;">
+                        ${pulseRing}
+                        <div class="w-full h-full rounded-full flex items-center justify-center font-black shadow-lg text-white text-[11px] border border-white/30" style="background-color: ${color};">
+                            ${displayAqi}
+                        </div>
+                    </div>
+                `;
+
+                const customIcon = L.divIcon({
+                    html: iconHtml,
+                    className: 'custom-city-marker',
+                    iconSize: [markerSize, markerSize],
+                    iconAnchor: [markerSize / 2, markerSize / 2],
+                    popupAnchor: [0, -markerSize / 2]
+                });
+
+                const escapedName = escapeHtml(city.name);
+                const escapedRegion = escapeHtml(city.region || '');
+                const escapedKey = encodeURIComponent(city.key);
+                const escapedCategory = escapeHtml(category);
+
+                const statusBadge = hasRealReading
+                    ? `<span class="text-xs px-2 py-0.5 rounded-full font-bold" style="background-color: ${color}25; color: ${color}; border: 1px solid ${color}55;">AQI ${displayAqi} • ${escapedCategory}</span>`
+                    : `<span class="text-[11px] px-2 py-0.5 rounded-full bg-white/10 text-white/60 border border-white/10">Требует замера</span>`;
+
+                const popupContent = `
+                    <div class="p-4 space-y-2.5 min-w-[220px]">
+                        <div class="flex items-start justify-between gap-2">
+                            <div>
+                                <div class="font-bold text-base text-white flex items-center gap-1.5">
+                                    <span>${escapedName}</span>
+                                    ${city.is_major ? '<span class="text-[9px] bg-teal-500/20 text-teal-300 px-1 py-0.2 rounded font-semibold">Крупный</span>' : ''}
+                                </div>
+                                <div class="text-xs text-white/60">${escapedRegion}</div>
+                            </div>
+                        </div>
+
+                        <div class="pt-1">
+                            ${statusBadge}
+                        </div>
+
+                        <div class="pt-2 border-t border-white/10 flex items-center justify-between gap-2">
+                            <a href="/city/${escapedKey}" class="text-xs font-semibold text-teal-300 hover:text-teal-200 hover:underline flex items-center gap-1">
+                                <span>Открыть прогноз</span>
+                                <span>→</span>
+                            </a>
+                            <button type="button" class="map-popup-fav-btn p-1 rounded hover:bg-white/10 text-xs text-white/50 hover:text-amber-300" data-key="${escapedKey}" data-name="${escapedName}" title="В избранное">
+                                <i data-lucide="star" class="w-3.5 h-3.5 ${isFav ? 'fill-amber-300 text-amber-300' : ''}"></i>
+                            </button>
+                        </div>
+                    </div>
+                `;
+
+                const marker = L.marker([city.lat, city.lon], { icon: customIcon });
+                marker.bindPopup(popupContent);
+                marker.on('popupopen', () => {
+                    if (window.lucide) window.lucide.createIcons();
+                    const popupEl = marker.getPopup().getElement();
+                    if (popupEl) {
+                        const btn = popupEl.querySelector('.map-popup-fav-btn');
+                        if (btn) {
+                            btn.onclick = function (e) {
+                                e.stopPropagation();
+                                const currentFavs = getFavorites();
+                                const exists = currentFavs.some(f => f.key === city.key);
+                                let updated;
+                                if (exists) {
+                                    updated = currentFavs.filter(f => f.key !== city.key);
+                                } else {
+                                    updated = [...currentFavs, { key: city.key, name: city.name }];
+                                }
+                                saveFavorites(updated);
+                                renderFavoritesBar();
+                                syncAllCardStars();
+                                renderMapMarkers(filter);
+                            };
+                        }
+                    }
+                });
+
+                mapMarkerLayer.addLayer(marker);
+            });
+        }
+    }
+
     // Unified initialization on DOM ready
     function init() {
         initCitySearch();
@@ -616,6 +864,7 @@
         saveCurrentCityVisit();
         hydrateCatalogCardsFromLocalStorage();
         initCardFavoriteButtons();
+        initInteractiveMap();
     }
 
     if (document.readyState === 'loading') {

@@ -1,6 +1,61 @@
 {% extends "base.html" %}
 
-{% block title %}AirTrace RU v3 — Мониторинг качества воздуха городов России{% endblock %}
+{% block title %}AirTrace RU v3.1 — Мониторинг качества воздуха городов России и интерактивная карта{% endblock %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+<style>
+/* Leaflet dark theme integration for AirTrace */
+.leaflet-container {
+    background-color: #0b1220 !important;
+    font-family: 'IBM Plex Sans', sans-serif !important;
+}
+.leaflet-popup-content-wrapper {
+    background: rgba(15, 23, 42, 0.95) !important;
+    backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 255, 255, 0.2) !important;
+    border-radius: 1.25rem !important;
+    color: #ffffff !important;
+    box-shadow: 0 25px 30px -5px rgba(0, 0, 0, 0.6), 0 10px 15px -6px rgba(0, 0, 0, 0.6) !important;
+    padding: 0 !important;
+    overflow: hidden;
+}
+.leaflet-popup-content {
+    margin: 0 !important;
+    line-height: 1.4 !important;
+}
+.leaflet-popup-tip {
+    background: rgba(15, 23, 42, 0.95) !important;
+    border: 1px solid rgba(255, 255, 255, 0.2) !important;
+}
+.leaflet-container a.leaflet-popup-close-button {
+    color: rgba(255, 255, 255, 0.6) !important;
+    padding: 8px 12px !important;
+}
+.leaflet-container a.leaflet-popup-close-button:hover {
+    color: #ffffff !important;
+}
+.map-marker-pin {
+    transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.map-marker-pin:hover {
+    transform: scale(1.3) !important;
+    z-index: 1000 !important;
+}
+@keyframes ringPulse {
+    0% { transform: scale(0.9); opacity: 0.8; }
+    50% { transform: scale(1.6); opacity: 0; }
+    100% { transform: scale(0.9); opacity: 0; }
+}
+.pulse-ring {
+    position: absolute;
+    inset: -4px;
+    border-radius: 9999px;
+    animation: ringPulse 2.8s infinite;
+    pointer-events: none;
+}
+</style>
+{% endblock %}
 
 {% block content %}
 <!-- Hero Section -->
@@ -163,49 +218,124 @@
 </section>
 {% endif %}
 
-<!-- Major Cities Catalog Grid -->
+<!-- Major Cities Catalog & Interactive Map (AirTrace v3.1 Feature) -->
 <section class="mt-8">
-    <div class="flex items-center justify-between mb-4">
-        <h3 class="text-xl font-bold">Города под наблюдением</h3>
-        <span class="text-xs opacity-60">Всего: {{ cities|length }} городов</span>
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-5">
+        <div>
+            <h3 class="text-xl md:text-2xl font-bold flex items-center gap-2">
+                <span>Города под наблюдением</span>
+                <span class="text-xs px-2.5 py-0.5 rounded-full bg-teal-500/20 text-teal-300 border border-teal-400/30 font-medium">{{ cities|length }} городов РФ</span>
+            </h3>
+            <p class="text-xs md:text-sm opacity-70 mt-1">Переключайтесь между каталогом карточек и интерактивной картой качества воздуха</p>
+        </div>
+
+        <!-- View Mode Switcher -->
+        <div class="inline-flex p-1 rounded-2xl bg-white/10 border border-white/15 backdrop-blur-md self-start sm:self-auto shadow-inner" role="tablist" aria-label="Режим отображения каталога">
+            <button type="button" id="catalog-view-grid-btn" 
+                    class="px-4 py-2 rounded-xl text-xs font-semibold flex items-center gap-2 transition-all bg-white/20 text-white shadow-sm"
+                    role="tab" aria-selected="true" aria-controls="catalog-grid-wrapper">
+                <i data-lucide="layout-grid" class="w-4 h-4 text-teal-300"></i>
+                <span>Карточки</span>
+            </button>
+            <button type="button" id="catalog-view-map-btn" 
+                    class="px-4 py-2 rounded-xl text-xs font-semibold flex items-center gap-2 transition-all text-white/70 hover:text-white hover:bg-white/10"
+                    role="tab" aria-selected="false" aria-controls="catalog-map-wrapper">
+                <i data-lucide="map" class="w-4 h-4 text-sky-300"></i>
+                <span>Интерактивная карта</span>
+                <span class="text-[10px] bg-gradient-to-r from-teal-400 to-sky-400 text-slate-900 font-extrabold px-1.5 py-0.2 rounded-full uppercase tracking-tight ml-0.5">v3.1</span>
+            </button>
+        </div>
     </div>
 
-    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4">
-        {% for key, city in cities.items() %}
-        <a href="/city/{{ key }}" class="glass rounded-2xl p-4 hover:bg-white/20 transition-all group flex items-center justify-between city-catalog-card" data-city-key="{{ key }}">
-            <div class="min-w-0 pr-2">
-                <div class="text-base font-semibold group-hover:text-teal-200 transition-colors flex items-center gap-1.5 truncate">
-                    <span>{{ city.name }}</span>
-                    {% if city.is_major %}
-                    <span class="w-1.5 h-1.5 rounded-full bg-teal-300 flex-shrink-0" title="Крупный город"></span>
-                    {% endif %}
-                </div>
-                <div class="text-xs opacity-65 mt-0.5 truncate">{{ city.region or ("%.2f, %.2f"|format(city.lat, city.lon)) }}</div>
-                
-                <div class="city-status-slot mt-2">
-                    <span class="text-[11px] px-2 py-0.5 rounded-md bg-white/10 text-white/60 border border-white/10 flex items-center gap-1.5 w-fit">
-                        <span class="w-1.5 h-1.5 rounded-full bg-slate-400"></span>
-                        <span>Требует замера</span>
+    <!-- Map Container (Hidden by default, toggled via JS) -->
+    <div id="catalog-map-wrapper" class="hidden mb-8" role="tabpanel" aria-labelledby="catalog-view-map-btn">
+        <div class="glass rounded-3xl p-4 md:p-6 border border-white/15 shadow-2xl space-y-4">
+            <!-- Map Filter Chips Bar -->
+            <div class="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-white/10">
+                <div class="flex items-center gap-1.5 flex-wrap">
+                    <span class="text-xs opacity-60 mr-1 flex items-center gap-1">
+                        <i data-lucide="filter" class="w-3.5 h-3.5"></i> Фильтр:
                     </span>
+                    <button type="button" class="map-filter-chip active px-3 py-1 rounded-lg text-xs font-medium bg-teal-500/30 text-teal-200 border border-teal-400/40 transition-all hover:bg-teal-500/40" data-filter="all">Все ({{ cities|length }})</button>
+                    <button type="button" class="map-filter-chip px-3 py-1 rounded-lg text-xs font-medium bg-white/10 text-white/80 border border-white/10 transition-all hover:bg-white/20" data-filter="major">Крупные центры</button>
+                    <button type="button" class="map-filter-chip px-3 py-1 rounded-lg text-xs font-medium bg-white/10 text-white/80 border border-white/10 transition-all hover:bg-white/20" data-filter="favorites">Избранное ⭐</button>
+                    <button type="button" class="map-filter-chip px-3 py-1 rounded-lg text-xs font-medium bg-white/10 text-white/80 border border-white/10 transition-all hover:bg-white/20" data-filter="attention">Внимание / НМУ ⚠️</button>
+                </div>
+                
+                <div class="flex items-center gap-2">
+                    <button type="button" id="map-reset-bounds-btn" class="btn-glass px-3 py-1.5 rounded-xl text-xs flex items-center gap-1.5 text-white/80 hover:text-white" title="Сбросить масштаб на всю Россию">
+                        <i data-lucide="maximize" class="w-3.5 h-3.5 text-teal-300"></i>
+                        <span>Вся Россия</span>
+                    </button>
                 </div>
             </div>
-            
-            <div class="city-aqi-badge-slot flex items-center gap-1.5 flex-shrink-0">
-                <button type="button" class="card-fav-star p-1.5 rounded-lg hover:bg-white/10 transition-all z-10" data-city-key="{{ key }}" data-city-name="{{ city.name }}" title="Добавить в избранное">
-                    <i data-lucide="star" class="w-4 h-4 text-white/30 hover:text-amber-300"></i>
-                </button>
-                <i data-lucide="arrow-up-right" class="w-4 h-4 opacity-50 group-hover:opacity-100 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-all text-teal-300"></i>
-            </div>
-        </a>
-        {% endfor %}
 
-        <a href="/custom" class="glass rounded-2xl p-4 hover:bg-white/20 transition-all border border-dashed border-white/25 flex items-center justify-between">
-            <div>
-                <div class="text-base font-semibold">Произвольная точка</div>
-                <div class="text-xs opacity-65 mt-0.5">Ввод любых координат по широте и долготе</div>
+            <!-- Interactive Leaflet Map Canvas -->
+            <div id="airtrace-russia-map" class="w-full h-[540px] md:h-[620px] rounded-2xl overflow-hidden border border-white/10 shadow-inner bg-slate-950/80 relative z-0"></div>
+
+            <!-- Map Legend -->
+            <div class="flex flex-wrap items-center justify-between gap-4 pt-2 text-xs opacity-80">
+                <div class="flex items-center gap-3 flex-wrap">
+                    <span class="font-semibold text-white/90">Качество воздуха:</span>
+                    <span class="inline-flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-emerald-400"></span> Хорошо (≤50)</span>
+                    <span class="inline-flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-amber-400"></span> Умеренно (51-100)</span>
+                    <span class="inline-flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-orange-500"></span> Чувств. группы (101-150)</span>
+                    <span class="inline-flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-rose-500"></span> Высокий / НМУ (>150)</span>
+                    <span class="inline-flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-slate-400"></span> Требует замера</span>
+                </div>
+                <div class="text-[11px] opacity-60 italic">
+                    OpenStreetMap & CARTO Dark Matter • Кликните на маркер для быстрого перехода
+                </div>
             </div>
-            <i data-lucide="map-pin" class="w-5 h-5 text-sky-400"></i>
-        </a>
+        </div>
+    </div>
+
+    <!-- Grid Container -->
+    <div id="catalog-grid-wrapper" role="tabpanel" aria-labelledby="catalog-view-grid-btn">
+        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4">
+            {% for key, city in cities.items() %}
+            <a href="/city/{{ key }}" class="glass rounded-2xl p-4 hover:bg-white/20 transition-all group flex items-center justify-between city-catalog-card" data-city-key="{{ key }}">
+                <div class="min-w-0 pr-2">
+                    <div class="text-base font-semibold group-hover:text-teal-200 transition-colors flex items-center gap-1.5 truncate">
+                        <span>{{ city.name }}</span>
+                        {% if city.is_major %}
+                        <span class="w-1.5 h-1.5 rounded-full bg-teal-300 flex-shrink-0" title="Крупный город"></span>
+                        {% endif %}
+                    </div>
+                    <div class="text-xs opacity-65 mt-0.5 truncate">{{ city.region or ("%.2f, %.2f"|format(city.lat, city.lon)) }}</div>
+                    
+                    <div class="city-status-slot mt-2">
+                        <span class="text-[11px] px-2 py-0.5 rounded-md bg-white/10 text-white/60 border border-white/10 flex items-center gap-1.5 w-fit">
+                            <span class="w-1.5 h-1.5 rounded-full bg-slate-400"></span>
+                            <span>Требует замера</span>
+                        </span>
+                    </div>
+                </div>
+                
+                <div class="city-aqi-badge-slot flex items-center gap-1.5 flex-shrink-0">
+                    <button type="button" class="card-fav-star p-1.5 rounded-lg hover:bg-white/10 transition-all z-10" data-city-key="{{ key }}" data-city-name="{{ city.name }}" title="Добавить в избранное">
+                        <i data-lucide="star" class="w-4 h-4 text-white/30 hover:text-amber-300"></i>
+                    </button>
+                    <i data-lucide="arrow-up-right" class="w-4 h-4 opacity-50 group-hover:opacity-100 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-all text-teal-300"></i>
+                </div>
+            </a>
+            {% endfor %}
+
+            <a href="/custom" class="glass rounded-2xl p-4 hover:bg-white/20 transition-all border border-dashed border-white/25 flex items-center justify-between">
+                <div>
+                    <div class="text-base font-semibold">Произвольная точка</div>
+                    <div class="text-xs opacity-65 mt-0.5">Ввод любых координат по широте и долготе</div>
+                </div>
+                <i data-lucide="map-pin" class="w-5 h-5 text-sky-400"></i>
+            </a>
+        </div>
     </div>
 </section>
+
+{% block extra_scripts %}
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+<script id="cities-map-data" type="application/json">
+{{ cities_map_json|safe }}
+</script>
+{% endblock %}
 {% endblock %}

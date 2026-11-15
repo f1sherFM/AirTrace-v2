@@ -75,16 +75,20 @@ async def lifespan(_: FastAPI):
         await air_service.close()
 
 
+WEB_DIR = Path(__file__).resolve().parent
+_templates_dir = WEB_DIR / "templates" if (WEB_DIR / "templates").exists() else Path("templates")
+_static_dir = WEB_DIR / "static" if (WEB_DIR / "static").exists() else Path("static")
+
 app = FastAPI(title="AirTrace RU Web Interface", lifespan=lifespan)
 logger = logging.getLogger(__name__)
-templates = Jinja2Templates(directory="templates")
+templates = Jinja2Templates(directory=str(_templates_dir))
 templates.env.globals["encoding"] = "utf-8"
 templates.env.globals["format_time"] = format_time
 templates.env.globals["translate_api_status"] = translate_api_status
 templates.env.globals["translate_source"] = translate_source
 templates.env.globals["translate_freshness"] = translate_freshness
 templates.env.globals["translate_trend"] = translate_trend
-app.mount("/static", StaticFiles(directory="static"), name="static")
+app.mount("/static", StaticFiles(directory=str(_static_dir)), name="static")
 
 
 @app.middleware("http")

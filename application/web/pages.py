@@ -4,11 +4,12 @@ from __future__ import annotations
 
 import asyncio
 from datetime import datetime, timezone
+import json
 import logging
 from types import SimpleNamespace
 from typing import Any, Optional
 
-from application.queries.ranking import record_city_ranking_snapshot
+from application.queries.ranking import query_national_ranking, record_city_ranking_snapshot
 from core.settings import get_cities_mapping
 from domain.advisory import generate_activity_advisories
 from utils import MOSCOW_TZ, format_russian_timestamp
@@ -253,13 +254,28 @@ async def build_index_context(*, request: Any, service: WebAppService) -> dict[s
     health_context = await _health_context(service)
     ranking = None
     try:
-        from application.queries.ranking import query_national_ranking
         ranking = await query_national_ranking()
-    except Exception:
+    except Exception as exc:
+        logger.debug("Failed to query national ranking for index page: %s", exc, exc_info=True)
         ranking = None
+
+    cities_map = get_cities_mapping()
+    cities_map_data = [
+        {
+            "key": key,
+            "name": city.get("name", key),
+            "region": city.get("region"),
+            "lat": float(city.get("lat", 0.0)),
+            "lon": float(city.get("lon", 0.0)),
+            "is_major": bool(city.get("is_major", False)),
+        }
+        for key, city in cities_map.items()
+    ]
+
     return {
         "request": request,
-        "cities": get_cities_mapping(),
+        "cities": cities_map,
+        "cities_map_json": json.dumps(cities_map_data, ensure_ascii=False),
         "ranking": ranking,
         **health_context,
         "title": "AirTrace RU - Мониторинг качества воздуха",
