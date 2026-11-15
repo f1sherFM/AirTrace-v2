@@ -628,7 +628,12 @@ class PerformanceIntegrationManager:
             task.cancel()
         
         if self.background_tasks:
-            await asyncio.gather(*self.background_tasks, return_exceptions=True)
+            try:
+                loop = asyncio.get_running_loop()
+                if not loop.is_closed():
+                    await asyncio.gather(*self.background_tasks, return_exceptions=True)
+            except RuntimeError:
+                pass
         
         # Cleanup components
         if self.resource_manager:
@@ -660,7 +665,12 @@ class PerformanceIntegrationManager:
             task.cancel()
         
         if self.background_tasks:
-            await asyncio.gather(*self.background_tasks, return_exceptions=True)
+            try:
+                loop = asyncio.get_running_loop()
+                if not loop.is_closed():
+                    await asyncio.gather(*self.background_tasks, return_exceptions=True)
+            except RuntimeError:
+                pass
         
         # Shutdown components in reverse order
         try:

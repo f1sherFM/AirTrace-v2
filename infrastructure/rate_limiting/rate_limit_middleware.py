@@ -119,6 +119,8 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
                 "Rate limiting trusted proxies configured: %d entries",
                 len(self.trusted_proxy_networks),
             )
+        rate_limit_manager.middleware = self
+        rate_limit_manager._enabled = self.enabled
     
     def _should_skip_path(self, path: str) -> bool:
         """Check if path should skip rate limiting"""
@@ -420,16 +422,8 @@ class RateLimitManager:
         enabled: bool = True,
         skip_paths: Optional[list] = None,
         custom_identifier: Optional[Callable[[Request], str]] = None
-    ) -> RateLimitMiddleware:
+    ) -> Optional[RateLimitMiddleware]:
         """Setup rate limiting middleware for FastAPI app"""
-        self.middleware = RateLimitMiddleware(
-            app=app,
-            rate_limiter=self.rate_limiter,
-            enabled=enabled,
-            skip_paths=skip_paths,
-            custom_identifier=custom_identifier
-        )
-        
         app.add_middleware(RateLimitMiddleware, 
                           rate_limiter=self.rate_limiter,
                           enabled=enabled,

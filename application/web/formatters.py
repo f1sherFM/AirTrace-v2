@@ -97,7 +97,7 @@ def get_action_plan(aqi_value: int, nmu_risk: str) -> dict[str, Any]:
         "low": {
             "title": "Что делать сейчас: низкий риск",
             "color": "green",
-            "risk_label": "низкий",
+            "risk_label": "low",
             "general": [
                 "Обычная активность на улице допустима.",
                 "Проветривание можно оставить в обычном режиме.",
@@ -110,7 +110,7 @@ def get_action_plan(aqi_value: int, nmu_risk: str) -> dict[str, Any]:
         "medium": {
             "title": "Что делать сейчас: умеренный риск",
             "color": "yellow",
-            "risk_label": "умеренный",
+            "risk_label": "medium",
             "general": [
                 "Сократите интенсивные тренировки на улице.",
                 "Планируйте прогулки на часы с более чистым воздухом.",
@@ -123,7 +123,7 @@ def get_action_plan(aqi_value: int, nmu_risk: str) -> dict[str, Any]:
         "high": {
             "title": "Что делать сейчас: высокий риск",
             "color": "orange",
-            "risk_label": "высокий",
+            "risk_label": "high",
             "general": [
                 "Избегайте длительной и интенсивной активности на улице.",
                 "Держите окна закрытыми в часы пикового загрязнения.",
@@ -136,7 +136,7 @@ def get_action_plan(aqi_value: int, nmu_risk: str) -> dict[str, Any]:
         "critical": {
             "title": "Что делать сейчас: критический риск",
             "color": "red",
-            "risk_label": "критический",
+            "risk_label": "critical",
             "general": [
                 "Отложите прогулки и активность на улице.",
                 "Сведите к минимуму попадание наружного воздуха в помещение.",

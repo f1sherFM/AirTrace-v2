@@ -202,11 +202,21 @@
             </div>
             <div class="flex items-center gap-2">
                 {% if is_custom %}
-                <a href="/custom?lat={{ current_city.lat }}&lon={{ current_city.lon }}&city_name={{ current_city.name | urlencode }}&forecast_hours=24#forecast-section" class="btn-glass rounded-xl px-3 py-1.5 text-xs {% if selected_forecast_hours == 24 %}bg-white/25 border-white/40 font-bold{% endif %}">24 часа</a>
-                <a href="/custom?lat={{ current_city.lat }}&lon={{ current_city.lon }}&city_name={{ current_city.name | urlencode }}&forecast_hours=48#forecast-section" class="btn-glass rounded-xl px-3 py-1.5 text-xs {% if selected_forecast_hours == 48 %}bg-white/25 border-white/40 font-bold{% endif %}">48 часов</a>
+                {% if selected_forecast_hours == 24 %}
+                <a href="/custom?lat={{ current_city.lat }}&lon={{ current_city.lon }}&city_name={{ current_city.name | urlencode }}&forecast_hours=24#forecast-section" class="btn-glass rounded-xl px-3 py-1.5 text-xs bg-white/25 border-white/40 font-bold" role="button" aria-pressed="true">24 часа</a>
+                <a href="/custom?lat={{ current_city.lat }}&lon={{ current_city.lon }}&city_name={{ current_city.name | urlencode }}&forecast_hours=48#forecast-section" class="btn-glass rounded-xl px-3 py-1.5 text-xs" role="button" aria-pressed="false">48 часов</a>
                 {% else %}
-                <a href="/city/{{ city_key }}?forecast_hours=24#forecast-section" class="btn-glass rounded-xl px-3 py-1.5 text-xs {% if selected_forecast_hours == 24 %}bg-white/25 border-white/40 font-bold{% endif %}">24 часа</a>
-                <a href="/city/{{ city_key }}?forecast_hours=48#forecast-section" class="btn-glass rounded-xl px-3 py-1.5 text-xs {% if selected_forecast_hours == 48 %}bg-white/25 border-white/40 font-bold{% endif %}">48 часов</a>
+                <a href="/custom?lat={{ current_city.lat }}&lon={{ current_city.lon }}&city_name={{ current_city.name | urlencode }}&forecast_hours=24#forecast-section" class="btn-glass rounded-xl px-3 py-1.5 text-xs" role="button" aria-pressed="false">24 часа</a>
+                <a href="/custom?lat={{ current_city.lat }}&lon={{ current_city.lon }}&city_name={{ current_city.name | urlencode }}&forecast_hours=48#forecast-section" class="btn-glass rounded-xl px-3 py-1.5 text-xs bg-white/25 border-white/40 font-bold" role="button" aria-pressed="true">48 часов</a>
+                {% endif %}
+                {% else %}
+                {% if selected_forecast_hours == 24 %}
+                <a href="/city/{{ city_key }}?forecast_hours=24#forecast-section" class="btn-glass rounded-xl px-3 py-1.5 text-xs bg-white/25 border-white/40 font-bold" role="button" aria-pressed="true">24 часа</a>
+                <a href="/city/{{ city_key }}?forecast_hours=48#forecast-section" class="btn-glass rounded-xl px-3 py-1.5 text-xs" role="button" aria-pressed="false">48 часов</a>
+                {% else %}
+                <a href="/city/{{ city_key }}?forecast_hours=24#forecast-section" class="btn-glass rounded-xl px-3 py-1.5 text-xs" role="button" aria-pressed="false">24 часа</a>
+                <a href="/city/{{ city_key }}?forecast_hours=48#forecast-section" class="btn-glass rounded-xl px-3 py-1.5 text-xs bg-white/25 border-white/40 font-bold" role="button" aria-pressed="true">48 часов</a>
+                {% endif %}
                 {% endif %}
             </div>
         </div>
@@ -260,7 +270,7 @@
                 {% endif %}
             </div>
 
-            <div class="space-y-2.5" aria-live="polite">
+            <div class="space-y-2.5" aria-live="polite" aria-busy="false">
                 {% if history %}
                     {% for point in history[:6] %}
                     <div class="panel rounded-xl p-3">
