@@ -1,79 +1,451 @@
-{
-  "cities": {
-    "moscow": {"name": "Москва", "lat": 55.7558, "lon": 37.6176, "region": "Москва", "is_major": true},
-    "spb": {"name": "Санкт-Петербург", "lat": 59.9311, "lon": 30.3609, "region": "Санкт-Петербург", "is_major": true},
-    "novosibirsk": {"name": "Новосибирск", "lat": 55.0084, "lon": 82.9357, "region": "Новосибирская область", "is_major": true},
-    "ekaterinburg": {"name": "Екатеринбург", "lat": 56.8431, "lon": 60.6454, "region": "Свердловская область", "is_major": true},
-    "kazan": {"name": "Казань", "lat": 55.7887, "lon": 49.1221, "region": "Республика Татарстан", "is_major": true},
-    "nizhny": {"name": "Нижний Новгород", "lat": 56.3269, "lon": 44.0075, "region": "Нижегородская область", "is_major": true},
-    "chelyabinsk": {"name": "Челябинск", "lat": 55.1644, "lon": 61.4368, "region": "Челябинская область", "is_major": true},
-    "krasnoyarsk": {"name": "Красноярск", "lat": 56.0153, "lon": 92.8932, "region": "Красноярский край", "is_major": true},
-    "samara": {"name": "Самара", "lat": 53.2001, "lon": 50.15, "region": "Самарская область", "is_major": true},
-    "ufa": {"name": "Уфа", "lat": 54.7388, "lon": 55.9721, "region": "Республика Башкортостан", "is_major": true},
-    "rostov": {"name": "Ростов-на-Дону", "lat": 47.2357, "lon": 39.7015, "region": "Ростовская область", "is_major": true},
-    "omsk": {"name": "Омск", "lat": 54.9885, "lon": 73.3242, "region": "Омская область", "is_major": true},
-    "krasnodar": {"name": "Краснодар", "lat": 45.0393, "lon": 38.9872, "region": "Краснодарский край", "is_major": true},
-    "voronezh": {"name": "Воронеж", "lat": 51.6755, "lon": 39.2089, "region": "Воронежская область", "is_major": true},
-    "perm": {"name": "Пермь", "lat": 58.0105, "lon": 56.2502, "region": "Пермский край", "is_major": true},
-    "volgograd": {"name": "Волгоград", "lat": 48.708, "lon": 44.5133, "region": "Волгоградская область", "is_major": true},
-    "saratov": {"name": "Саратов", "lat": 51.5406, "lon": 46.0086, "region": "Саратовская область", "is_major": false},
-    "tyumen": {"name": "Тюмень", "lat": 57.1613, "lon": 65.525, "region": "Тюменская область", "is_major": true},
-    "tolyatti": {"name": "Тольятти", "lat": 53.5078, "lon": 49.4204, "region": "Самарская область", "is_major": false},
-    "barnaul": {"name": "Барнаул", "lat": 53.3606, "lon": 83.7636, "region": "Алтайский край", "is_major": false},
-    "izhevsk": {"name": "Ижевск", "lat": 56.8498, "lon": 53.2045, "region": "Удмуртская Республика", "is_major": false},
-    "makhachkala": {"name": "Махачкала", "lat": 42.9849, "lon": 47.5046, "region": "Республика Дагестан", "is_major": false},
-    "khabarovsk": {"name": "Хабаровск", "lat": 48.4827, "lon": 135.0838, "region": "Хабаровский край", "is_major": true},
-    "ulyanovsk": {"name": "Ульяновск", "lat": 54.3142, "lon": 48.4031, "region": "Ульяновская область", "is_major": false},
-    "irkutsk": {"name": "Иркутск", "lat": 52.287, "lon": 104.305, "region": "Иркутская область", "is_major": true},
-    "vladivostok": {"name": "Владивосток", "lat": 43.1155, "lon": 131.8855, "region": "Приморский край", "is_major": true},
-    "yaroslavl": {"name": "Ярославль", "lat": 57.6261, "lon": 39.8845, "region": "Ярославская область", "is_major": false},
-    "kemerovo": {"name": "Кемерово", "lat": 55.3547, "lon": 86.0884, "region": "Кемеровская область", "is_major": false},
-    "tomsk": {"name": "Томск", "lat": 56.501, "lon": 84.9924, "region": "Томская область", "is_major": false},
-    "naberezhnye_chelny": {"name": "Набережные Челны", "lat": 55.7436, "lon": 52.4082, "region": "Республика Татарстан", "is_major": false},
-    "sevastopol": {"name": "Севастополь", "lat": 44.6167, "lon": 33.5254, "region": "Севастополь", "is_major": false},
-    "stavropol": {"name": "Ставрополь", "lat": 45.0428, "lon": 41.9734, "region": "Ставропольский край", "is_major": false},
-    "orenburg": {"name": "Оренбург", "lat": 51.7727, "lon": 55.0988, "region": "Оренбургская область", "is_major": false},
-    "novokuznetsk": {"name": "Новокузнецк", "lat": 53.7596, "lon": 87.1216, "region": "Кемеровская область", "is_major": false},
-    "ryazan": {"name": "Рязань", "lat": 54.6269, "lon": 39.6916, "region": "Рязанская область", "is_major": false},
-    "balashikha": {"name": "Балашиха", "lat": 55.7963, "lon": 37.9381, "region": "Московская область", "is_major": false},
-    "penza": {"name": "Пенза", "lat": 53.2007, "lon": 45.0163, "region": "Пензенская область", "is_major": false},
-    "cheboksary": {"name": "Чебоксары", "lat": 56.1439, "lon": 47.2489, "region": "Чувашская Республика", "is_major": false},
-    "lipetsk": {"name": "Липецк", "lat": 52.6103, "lon": 39.5947, "region": "Липецкая область", "is_major": false},
-    "kaliningrad": {"name": "Калининград", "lat": 54.7104, "lon": 20.4522, "region": "Калининградская область", "is_major": true},
-    "astrakhan": {"name": "Астрахань", "lat": 46.3497, "lon": 48.0408, "region": "Астраханская область", "is_major": false},
-    "tula": {"name": "Тула", "lat": 54.1961, "lon": 37.6182, "region": "Тульская область", "is_major": false},
-    "kirov": {"name": "Киров", "lat": 58.6035, "lon": 49.6679, "region": "Кировская область", "is_major": false},
-    "sochi": {"name": "Сочи", "lat": 43.6028, "lon": 39.7342, "region": "Краснодарский край", "is_major": true},
-    "kursk": {"name": "Курск", "lat": 51.7304, "lon": 36.1927, "region": "Курская область", "is_major": false},
-    "ulan_ude": {"name": "Улан-Удэ", "lat": 51.8345, "lon": 107.5845, "region": "Республика Бурятия", "is_major": false},
-    "surgut": {"name": "Сургут", "lat": 61.254, "lon": 73.3962, "region": "ХМАО — Югра", "is_major": false},
-    "tver": {"name": "Тверь", "lat": 56.8587, "lon": 35.9176, "region": "Тверская область", "is_major": false},
-    "magnitogorsk": {"name": "Магнитогорск", "lat": 53.4069, "lon": 58.9794, "region": "Челябинская область", "is_major": false},
-    "ivanovo": {"name": "Иваново", "lat": 56.9972, "lon": 40.9714, "region": "Ивановская область", "is_major": false},
-    "bryansk": {"name": "Брянск", "lat": 53.2436, "lon": 34.3634, "region": "Брянская область", "is_major": false},
-    "belgorod": {"name": "Белгород", "lat": 50.5997, "lon": 36.5983, "region": "Белгородская область", "is_major": false},
-    "vladimir": {"name": "Владимир", "lat": 56.129, "lon": 40.4066, "region": "Владимирская область", "is_major": false},
-    "chita": {"name": "Чита", "lat": 52.0336, "lon": 113.5009, "region": "Забайкальский край", "is_major": false},
-    "arkhangelsk": {"name": "Архангельск", "lat": 64.5401, "lon": 40.5433, "region": "Архангельская область", "is_major": false},
-    "nizhny_tagil": {"name": "Нижний Тагил", "lat": 57.9194, "lon": 59.965, "region": "Свердловская область", "is_major": false},
-    "kaluga": {"name": "Калуга", "lat": 54.5293, "lon": 36.2754, "region": "Калужская область", "is_major": false},
-    "smolensk": {"name": "Смоленск", "lat": 54.7818, "lon": 32.0401, "region": "Смоленская область", "is_major": false},
-    "cherepovets": {"name": "Череповец", "lat": 59.1248, "lon": 37.9048, "region": "Вологодская область", "is_major": false},
-    "kurgan": {"name": "Курган", "lat": 55.441, "lon": 65.3411, "region": "Курганская область", "is_major": false},
-    "orel": {"name": "Орёл", "lat": 52.9651, "lon": 36.0785, "region": "Орловская область", "is_major": false},
-    "vologda": {"name": "Вологда", "lat": 59.2239, "lon": 39.884, "region": "Вологодская область", "is_major": false},
-    "vladikavkaz": {"name": "Владикавказ", "lat": 43.0367, "lon": 44.6678, "region": "РСО — Алания", "is_major": false},
-    "murmansk": {"name": "Мурманск", "lat": 68.9585, "lon": 33.0827, "region": "Мурманская область", "is_major": false},
-    "saransk": {"name": "Саранск", "lat": 54.1838, "lon": 45.1838, "region": "Республика Мордовия", "is_major": false},
-    "yakutsk": {"name": "Якутск", "lat": 62.0355, "lon": 129.6755, "region": "Республика Саха (Якутия)", "is_major": false},
-    "tambov": {"name": "Тамбов", "lat": 52.7212, "lon": 41.4523, "region": "Тамбовская область", "is_major": false},
-    "grozny": {"name": "Грозный", "lat": 43.317, "lon": 45.6888, "region": "Чеченская Республика", "is_major": false},
-    "kostroma": {"name": "Кострома", "lat": 57.7665, "lon": 40.9269, "region": "Костромская область", "is_major": false},
-    "petrozavodsk": {"name": "Петрозаводск", "lat": 61.7849, "lon": 34.3469, "region": "Республика Карелия", "is_major": false},
-    "nizhnevartovsk": {"name": "Нижневартовск", "lat": 60.9385, "lon": 76.5589, "region": "ХМАО — Югра", "is_major": false},
-    "novorossiysk": {"name": "Новороссийск", "lat": 44.7154, "lon": 37.7619, "region": "Краснодарский край", "is_major": false},
-    "norilsk": {"name": "Норильск", "lat": 69.3558, "lon": 88.1893, "region": "Красноярский край", "is_major": false},
-    "bratsk": {"name": "Братск", "lat": 56.1517, "lon": 101.6342, "region": "Иркутская область", "is_major": false},
-    "dzerzhinsk": {"name": "Дзержинск", "lat": 56.2389, "lon": 43.4631, "region": "Нижегородская область", "is_major": false}
-  }
-}
+cities:
+  arkhangelsk:
+    name: Архангельск
+    lat: 64.5401
+    lon: 40.5433
+    region: Архангельская область
+    is_major: false
+  astrakhan:
+    name: Астрахань
+    lat: 46.3497
+    lon: 48.0408
+    region: Астраханская область
+    is_major: false
+  balashikha:
+    name: Балашиха
+    lat: 55.7963
+    lon: 37.9381
+    region: Московская область
+    is_major: false
+  barnaul:
+    name: Барнаул
+    lat: 53.3606
+    lon: 83.7636
+    region: Алтайский край
+    is_major: false
+  belgorod:
+    name: Белгород
+    lat: 50.5997
+    lon: 36.5983
+    region: Белгородская область
+    is_major: false
+  bratsk:
+    name: Братск
+    lat: 56.1517
+    lon: 101.6342
+    region: Иркутская область
+    is_major: false
+  bryansk:
+    name: Брянск
+    lat: 53.2436
+    lon: 34.3634
+    region: Брянская область
+    is_major: false
+  vladivostok:
+    name: Владивосток
+    lat: 43.1155
+    lon: 131.8855
+    region: Приморский край
+    is_major: true
+  vladikavkaz:
+    name: Владикавказ
+    lat: 43.0367
+    lon: 44.6678
+    region: РСО — Алания
+    is_major: false
+  vladimir:
+    name: Владимир
+    lat: 56.129
+    lon: 40.4066
+    region: Владимирская область
+    is_major: false
+  volgograd:
+    name: Волгоград
+    lat: 48.708
+    lon: 44.5133
+    region: Волгоградская область
+    is_major: true
+  vologda:
+    name: Вологда
+    lat: 59.2239
+    lon: 39.884
+    region: Вологодская область
+    is_major: false
+  voronezh:
+    name: Воронеж
+    lat: 51.6755
+    lon: 39.2089
+    region: Воронежская область
+    is_major: true
+  grozny:
+    name: Грозный
+    lat: 43.317
+    lon: 45.6888
+    region: Чеченская Республика
+    is_major: false
+  dzerzhinsk:
+    name: Дзержинск
+    lat: 56.2389
+    lon: 43.4631
+    region: Нижегородская область
+    is_major: false
+  ekaterinburg:
+    name: Екатеринбург
+    lat: 56.8431
+    lon: 60.6454
+    region: Свердловская область
+    is_major: true
+  ivanovo:
+    name: Иваново
+    lat: 56.9972
+    lon: 40.9714
+    region: Ивановская область
+    is_major: false
+  izhevsk:
+    name: Ижевск
+    lat: 56.8498
+    lon: 53.2045
+    region: Удмуртская Республика
+    is_major: false
+  irkutsk:
+    name: Иркутск
+    lat: 52.287
+    lon: 104.305
+    region: Иркутская область
+    is_major: true
+  kazan:
+    name: Казань
+    lat: 55.7887
+    lon: 49.1221
+    region: Республика Татарстан
+    is_major: true
+  kaliningrad:
+    name: Калининград
+    lat: 54.7104
+    lon: 20.4522
+    region: Калининградская область
+    is_major: true
+  kaluga:
+    name: Калуга
+    lat: 54.5293
+    lon: 36.2754
+    region: Калужская область
+    is_major: false
+  kemerovo:
+    name: Кемерово
+    lat: 55.3547
+    lon: 86.0884
+    region: Кемеровская область
+    is_major: false
+  kirov:
+    name: Киров
+    lat: 58.6035
+    lon: 49.6679
+    region: Кировская область
+    is_major: false
+  kostroma:
+    name: Кострома
+    lat: 57.7665
+    lon: 40.9269
+    region: Костромская область
+    is_major: false
+  krasnodar:
+    name: Краснодар
+    lat: 45.0393
+    lon: 38.9872
+    region: Краснодарский край
+    is_major: true
+  krasnoyarsk:
+    name: Красноярск
+    lat: 56.0153
+    lon: 92.8932
+    region: Красноярский край
+    is_major: true
+  kurgan:
+    name: Курган
+    lat: 55.441
+    lon: 65.3411
+    region: Курганская область
+    is_major: false
+  kursk:
+    name: Курск
+    lat: 51.7304
+    lon: 36.1927
+    region: Курская область
+    is_major: false
+  lipetsk:
+    name: Липецк
+    lat: 52.6103
+    lon: 39.5947
+    region: Липецкая область
+    is_major: false
+  magnitogorsk:
+    name: Магнитогорск
+    lat: 53.4069
+    lon: 58.9794
+    region: Челябинская область
+    is_major: false
+  makhachkala:
+    name: Махачкала
+    lat: 42.9849
+    lon: 47.5046
+    region: Республика Дагестан
+    is_major: false
+  moscow:
+    name: Москва
+    lat: 55.7558
+    lon: 37.6176
+    region: Москва
+    is_major: true
+  murmansk:
+    name: Мурманск
+    lat: 68.9585
+    lon: 33.0827
+    region: Мурманская область
+    is_major: false
+  naberezhnye_chelny:
+    name: Набережные Челны
+    lat: 55.7436
+    lon: 52.4082
+    region: Республика Татарстан
+    is_major: false
+  nizhnevartovsk:
+    name: Нижневартовск
+    lat: 60.9385
+    lon: 76.5589
+    region: ХМАО — Югра
+    is_major: false
+  nizhny:
+    name: Нижний Новгород
+    lat: 56.3269
+    lon: 44.0075
+    region: Нижегородская область
+    is_major: true
+  nizhny_tagil:
+    name: Нижний Тагил
+    lat: 57.9194
+    lon: 59.965
+    region: Свердловская область
+    is_major: false
+  novokuznetsk:
+    name: Новокузнецк
+    lat: 53.7596
+    lon: 87.1216
+    region: Кемеровская область
+    is_major: false
+  novorossiysk:
+    name: Новороссийск
+    lat: 44.7154
+    lon: 37.7619
+    region: Краснодарский край
+    is_major: false
+  novosibirsk:
+    name: Новосибирск
+    lat: 55.0084
+    lon: 82.9357
+    region: Новосибирская область
+    is_major: true
+  norilsk:
+    name: Норильск
+    lat: 69.3558
+    lon: 88.1893
+    region: Красноярский край
+    is_major: false
+  omsk:
+    name: Омск
+    lat: 54.9885
+    lon: 73.3242
+    region: Омская область
+    is_major: true
+  orenburg:
+    name: Оренбург
+    lat: 51.7727
+    lon: 55.0988
+    region: Оренбургская область
+    is_major: false
+  orel:
+    name: Орёл
+    lat: 52.9651
+    lon: 36.0785
+    region: Орловская область
+    is_major: false
+  penza:
+    name: Пенза
+    lat: 53.2007
+    lon: 45.0163
+    region: Пензенская область
+    is_major: false
+  perm:
+    name: Пермь
+    lat: 58.0105
+    lon: 56.2502
+    region: Пермский край
+    is_major: true
+  petrozavodsk:
+    name: Петрозаводск
+    lat: 61.7849
+    lon: 34.3469
+    region: Республика Карелия
+    is_major: false
+  rostov:
+    name: Ростов-на-Дону
+    lat: 47.2357
+    lon: 39.7015
+    region: Ростовская область
+    is_major: true
+  ryazan:
+    name: Рязань
+    lat: 54.6269
+    lon: 39.6916
+    region: Рязанская область
+    is_major: false
+  samara:
+    name: Самара
+    lat: 53.2001
+    lon: 50.15
+    region: Самарская область
+    is_major: true
+  spb:
+    name: Санкт-Петербург
+    lat: 59.9311
+    lon: 30.3609
+    region: Санкт-Петербург
+    is_major: true
+  saransk:
+    name: Саранск
+    lat: 54.1838
+    lon: 45.1838
+    region: Республика Мордовия
+    is_major: false
+  saratov:
+    name: Саратов
+    lat: 51.5406
+    lon: 46.0086
+    region: Саратовская область
+    is_major: false
+  sevastopol:
+    name: Севастополь
+    lat: 44.6167
+    lon: 33.5254
+    region: Севастополь
+    is_major: false
+  smolensk:
+    name: Смоленск
+    lat: 54.7818
+    lon: 32.0401
+    region: Смоленская область
+    is_major: false
+  sochi:
+    name: Сочи
+    lat: 43.6028
+    lon: 39.7342
+    region: Краснодарский край
+    is_major: true
+  stavropol:
+    name: Ставрополь
+    lat: 45.0428
+    lon: 41.9734
+    region: Ставропольский край
+    is_major: false
+  surgut:
+    name: Сургут
+    lat: 61.254
+    lon: 73.3962
+    region: ХМАО — Югра
+    is_major: false
+  tambov:
+    name: Тамбов
+    lat: 52.7212
+    lon: 41.4523
+    region: Тамбовская область
+    is_major: false
+  tver:
+    name: Тверь
+    lat: 56.8587
+    lon: 35.9176
+    region: Тверская область
+    is_major: false
+  tolyatti:
+    name: Тольятти
+    lat: 53.5078
+    lon: 49.4204
+    region: Самарская область
+    is_major: false
+  tomsk:
+    name: Томск
+    lat: 56.501
+    lon: 84.9924
+    region: Томская область
+    is_major: false
+  tula:
+    name: Тула
+    lat: 54.1961
+    lon: 37.6182
+    region: Тульская область
+    is_major: false
+  tyumen:
+    name: Тюмень
+    lat: 57.1613
+    lon: 65.525
+    region: Тюменская область
+    is_major: true
+  ulan_ude:
+    name: Улан-Удэ
+    lat: 51.8345
+    lon: 107.5845
+    region: Республика Бурятия
+    is_major: false
+  ulyanovsk:
+    name: Ульяновск
+    lat: 54.3142
+    lon: 48.4031
+    region: Ульяновская область
+    is_major: false
+  ufa:
+    name: Уфа
+    lat: 54.7388
+    lon: 55.9721
+    region: Республика Башкортостан
+    is_major: true
+  khabarovsk:
+    name: Хабаровск
+    lat: 48.4827
+    lon: 135.0838
+    region: Хабаровский край
+    is_major: true
+  cheboksary:
+    name: Чебоксары
+    lat: 56.1439
+    lon: 47.2489
+    region: Чувашская Республика
+    is_major: false
+  chelyabinsk:
+    name: Челябинск
+    lat: 55.1644
+    lon: 61.4368
+    region: Челябинская область
+    is_major: true
+  cherepovets:
+    name: Череповец
+    lat: 59.1248
+    lon: 37.9048
+    region: Вологодская область
+    is_major: false
+  chita:
+    name: Чита
+    lat: 52.0336
+    lon: 113.5009
+    region: Забайкальский край
+    is_major: false
+  yakutsk:
+    name: Якутск
+    lat: 62.0355
+    lon: 129.6755
+    region: Республика Саха (Якутия)
+    is_major: false
+  yaroslavl:
+    name: Ярославль
+    lat: 57.6261
+    lon: 39.8845
+    region: Ярославская область
+    is_major: false

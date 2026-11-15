@@ -83,7 +83,7 @@ def _resolve_coordinates(
 async def get_cities_v3(
     response: Response,
     q: Optional[str] = Query(None, description="Поисковый запрос (название, транслит или регион)"),
-    limit: int = Query(50, ge=1, le=100, description="Максимальное количество результатов"),
+    limit: int = Query(100, ge=1, le=100, description="Максимальное количество результатов"),
 ):
     """Поиск и получение каталога городов России (75+ городов с координатами и регионами)."""
     _apply_v3_headers(response)

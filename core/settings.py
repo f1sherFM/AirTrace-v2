@@ -59,13 +59,16 @@ class CitiesConfig(BaseModel):
     @model_validator(mode="after")
     def ensure_keys_match_entries(self) -> "CitiesConfig":
         normalized: dict[str, CityConfig] = {}
-        for key, city in self.cities.items():
+        for key, city in sorted(self.cities.items(), key=lambda item: item[1].name.lower()):
             normalized[key] = city.model_copy(update={"key": key})
         self.cities = normalized
         return self
 
     def as_legacy_mapping(self) -> dict[str, dict[str, Any]]:
-        return {key: city.to_legacy_payload() for key, city in self.cities.items()}
+        return {
+            key: city.to_legacy_payload()
+            for key, city in sorted(self.cities.items(), key=lambda item: item[1].name.lower())
+        }
 
 
 def _duplicate_preserving_object(pairs: list[tuple[Any, Any]]) -> dict[str, Any]:

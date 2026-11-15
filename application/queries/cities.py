@@ -39,7 +39,7 @@ def _translit(text: str) -> str:
     return "".join(_TRANSLIT_MAP.get(char, char) for char in text_lower)
 
 
-def search_cities(query: Optional[str] = None, limit: int = 50) -> CitySearchResponse:
+def search_cities(query: Optional[str] = None, limit: int = 100) -> CitySearchResponse:
     """Search cities in the centralized catalog by name, key, or region."""
     config = load_cities_config()
     all_cities = config.cities
@@ -56,8 +56,8 @@ def search_cities(query: Optional[str] = None, limit: int = 50) -> CitySearchRes
             )
             for city in all_cities.values()
         ]
-        # Sort major cities first, then alphabetically
-        items.sort(key=lambda c: (not c.is_major, c.name))
+        # Sort alphabetically by city name
+        items.sort(key=lambda c: c.name.lower())
         return CitySearchResponse(total=len(items), query=None, cities=items[:limit])
 
     norm_q = query.strip().lower()

@@ -504,7 +504,7 @@ async def alert_settings_test_delivery(rule_id: str):
 
 
 @app.get("/v3/cities")
-async def v3_cities_web(q: Optional[str] = Query(None), limit: int = Query(50, ge=1, le=100)):
+async def v3_cities_web(q: Optional[str] = Query(None), limit: int = Query(100, ge=1, le=100)):
     from application.queries.cities import search_cities
     return search_cities(query=q, limit=limit)
 
