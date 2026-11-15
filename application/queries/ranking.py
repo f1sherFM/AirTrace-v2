@@ -14,38 +14,6 @@ from core.settings import load_cities_config
 
 logger = logging.getLogger(__name__)
 
-# In-memory snapshot cache for real measurements (key -> (timestamp, CityRankingItem))
-_CITY_SNAPSHOTS_CACHE: dict[str, tuple[float, CityRankingItem]] = {}
-SNAPSHOT_CACHE_TTL_SECONDS = 1800  # 30 minutes
-
-
-def record_city_ranking_snapshot(
-    key: str,
-    name: str,
-    lat: float,
-    lon: float,
-    aqi: int,
-    aqi_category: str,
-    aqi_color: str,
-    region: Optional[str] = None,
-    nmu_level: str = "none",
-    pm2_5: Optional[float] = None,
-) -> None:
-    """Record a verified live measurement into the ranking cache."""
-    item = CityRankingItem(
-        key=key,
-        name=name,
-        region=region,
-        lat=lat,
-        lon=lon,
-        aqi=aqi,
-        aqi_category=aqi_category,
-        aqi_color=aqi_color,
-        nmu_level=nmu_level,
-        pm2_5=pm2_5,
-    )
-    _CITY_SNAPSHOTS_CACHE[key] = (time.time(), item)
-
 
 class CityRankingItem(BaseModel):
     key: str
@@ -69,6 +37,46 @@ class NationalOverviewResponse(BaseModel):
     attention_cities: List[CityRankingItem] = Field(default_factory=list)
     all_rankings: List[CityRankingItem] = Field(default_factory=list)
     summary: str
+
+
+# TODO: Migrate _CITY_SNAPSHOTS_CACHE to Redis for multi-worker production and restart persistence.
+# In-memory snapshot cache for real measurements (key -> (timestamp, CityRankingItem))
+_CITY_SNAPSHOTS_CACHE: dict[str, tuple[float, CityRankingItem]] = {}
+SNAPSHOT_CACHE_TTL_SECONDS = 1800  # 30 minutes
+SNAPSHOT_CACHE_MAX_ENTRIES = 128
+
+
+def record_city_ranking_snapshot(
+    key: str,
+    name: str,
+    lat: float,
+    lon: float,
+    aqi: int,
+    aqi_category: str,
+    aqi_color: str,
+    region: Optional[str] = None,
+    nmu_level: str = "none",
+    pm2_5: Optional[float] = None,
+) -> None:
+    """Record a verified live measurement into the ranking cache."""
+    # Bounded cache eviction: remove oldest if exceeding limit
+    if len(_CITY_SNAPSHOTS_CACHE) >= SNAPSHOT_CACHE_MAX_ENTRIES and key not in _CITY_SNAPSHOTS_CACHE:
+        oldest_key = min(_CITY_SNAPSHOTS_CACHE, key=lambda k: _CITY_SNAPSHOTS_CACHE[k][0])
+        _CITY_SNAPSHOTS_CACHE.pop(oldest_key, None)
+
+    item = CityRankingItem(
+        key=key,
+        name=name,
+        region=region,
+        lat=lat,
+        lon=lon,
+        aqi=aqi,
+        aqi_category=aqi_category,
+        aqi_color=aqi_color,
+        nmu_level=nmu_level,
+        pm2_5=pm2_5,
+    )
+    _CITY_SNAPSHOTS_CACHE[key] = (time.time(), item)
 
 
 # Focused set of major industrial and geographic centers for quick live ranking

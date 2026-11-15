@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import re
 from typing import Any, List, Optional
 from pydantic import BaseModel
 

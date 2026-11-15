@@ -5,7 +5,7 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from typing import Optional
 
-from fastapi import APIRouter, HTTPException, Query, Response
+from fastapi import APIRouter, HTTPException, Query
 
 from api.v3.schemas import AirQualityDataV3, ForecastResponseV3, ForecastSummary
 from application.queries.cities import CitySearchResponse, search_cities
@@ -48,11 +48,6 @@ V3_ERROR_RESPONSES = {
 }
 
 
-def _apply_v3_headers(response: Response) -> None:
-    for header, value in V3_RESPONSE_HEADERS.items():
-        response.headers[header] = value
-
-
 def _resolve_coordinates(
     *,
     city: Optional[str] = None,
@@ -81,31 +76,26 @@ def _resolve_coordinates(
 
 @router.get("/cities", response_model=CitySearchResponse, responses=V3_ERROR_RESPONSES)
 async def get_cities_v3(
-    response: Response,
     q: Optional[str] = Query(None, description="Поисковый запрос (название, транслит или регион)"),
     limit: int = Query(100, ge=1, le=100, description="Максимальное количество результатов"),
 ):
     """Поиск и получение каталога городов России (75+ городов с координатами и регионами)."""
-    _apply_v3_headers(response)
     return search_cities(query=q, limit=limit)
 
 
 @router.get("/cities/ranking", response_model=NationalOverviewResponse, responses=V3_ERROR_RESPONSES)
-async def get_national_ranking_v3(response: Response):
+async def get_national_ranking_v3():
     """Национальный рейтинг качества воздуха в городах России: чистейшие города, зоны внимания и сводка."""
-    _apply_v3_headers(response)
     return await query_national_ranking()
 
 
 @router.get("/activities/advice", response_model=OverallAdvisory, responses=V3_ERROR_RESPONSES)
 async def get_activity_advice_v3(
-    response: Response,
     city: Optional[str] = Query(None, description="Код города (например, moscow, kazan, krasnoyarsk)"),
     lat: Optional[float] = Query(None, ge=-90, le=90, description="Широта"),
     lon: Optional[float] = Query(None, ge=-180, le=180, description="Долгота"),
 ):
     """Получение персонализированных рекомендаций по активности (спорт, проветривание, маски, очистители)."""
-    _apply_v3_headers(response)
     target_lat, target_lon, _, _ = _resolve_coordinates(city=city, lat=lat, lon=lon)
     air_data = await query_current_air_quality(lat=target_lat, lon=target_lon)
 
@@ -124,13 +114,11 @@ async def get_activity_advice_v3(
 
 @router.get("/current", response_model=AirQualityDataV3, responses=V3_ERROR_RESPONSES)
 async def get_current_air_quality_v3(
-    response: Response,
     city: Optional[str] = Query(None, description="Код города (например, moscow, kazan, spb)"),
     lat: Optional[float] = Query(None, ge=-90, le=90, description="Широта"),
     lon: Optional[float] = Query(None, ge=-180, le=180, description="Долгота"),
 ):
     """Текущее качество воздуха с включенными рекомендациями по активности и региональным контекстом."""
-    _apply_v3_headers(response)
     target_lat, target_lon, city_name, region = _resolve_coordinates(city=city, lat=lat, lon=lon)
 
     base_data = await query_current_air_quality(lat=target_lat, lon=target_lon)
@@ -155,14 +143,12 @@ async def get_current_air_quality_v3(
 
 @router.get("/forecast", response_model=ForecastResponseV3, responses=V3_ERROR_RESPONSES)
 async def get_forecast_air_quality_v3(
-    response: Response,
     city: Optional[str] = Query(None, description="Код города"),
     lat: Optional[float] = Query(None, ge=-90, le=90, description="Широта"),
     lon: Optional[float] = Query(None, ge=-180, le=180, description="Долгота"),
     hours: int = Query(24, ge=1, le=168, description="Горизонт прогноза в часах"),
 ):
     """Почасовой прогноз качества воздуха с автоматическим расчетом пиков загрязнения и безопасных окон."""
-    _apply_v3_headers(response)
     target_lat, target_lon, city_name, _ = _resolve_coordinates(city=city, lat=lat, lon=lon)
     items = await query_forecast_air_quality(lat=target_lat, lon=target_lon, hours=hours)
 
@@ -202,7 +188,6 @@ async def get_forecast_air_quality_v3(
 
 @router.get("/history", response_model=HistoryQueryResponse, responses=V3_ERROR_RESPONSES)
 async def get_history_v3(
-    response: Response,
     range: HistoryRange = Query(HistoryRange.LAST_24H, description="Диапазон истории: 24h, 7d, 30d"),
     page: int = Query(1, ge=1, description="Страница"),
     page_size: int = Query(50, ge=1, le=500, description="Количество записей"),
@@ -212,7 +197,6 @@ async def get_history_v3(
     lon: Optional[float] = Query(None, ge=-180, le=180, description="Долгота"),
 ):
     """Исторические данные качества воздуха с поддержкой поиска по городам и координатам."""
-    _apply_v3_headers(response)
     return await query_history_v2(
         range_value=range,
         page=page,
@@ -226,19 +210,16 @@ async def get_history_v3(
 
 @router.get("/trends", response_model=HistoryTrendResponse, responses=V3_ERROR_RESPONSES)
 async def get_trends_v3(
-    response: Response,
     range: TrendRange = Query(TrendRange.LAST_7D, description="Диапазон тренда: 7d или 30d"),
     city: Optional[str] = Query(None, description="Код города"),
     lat: Optional[float] = Query(None, ge=-90, le=90, description="Широта"),
     lon: Optional[float] = Query(None, ge=-180, le=180, description="Долгота"),
 ):
     """Агрегированные тренды качества воздуха с индикацией направления динамики."""
-    _apply_v3_headers(response)
     return await query_trends_v2(range_value=range, city=city, lat=lat, lon=lon)
 
 
 @router.get("/health", response_model=HealthCheckResponse, responses=V3_ERROR_RESPONSES)
-async def get_health_v3(response: Response):
+async def get_health_v3():
     """Проверка состояния системы и компонентов в контракте v3."""
-    _apply_v3_headers(response)
     return await query_health()

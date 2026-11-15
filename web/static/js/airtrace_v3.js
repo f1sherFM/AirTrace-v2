@@ -9,6 +9,19 @@
 (function () {
     'use strict';
 
+    /**
+     * Helper to escape HTML characters to prevent XSS vulnerabilities.
+     */
+    function escapeHtml(str) {
+        if (str === null || str === undefined) return '';
+        return String(str)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#039;');
+    }
+
     // -------------------------------------------------------------
     // 1. Instant City Search & Autocomplete
     // -------------------------------------------------------------
@@ -46,14 +59,16 @@
 
             let html = '<div class="py-1">';
             cities.forEach((city, idx) => {
-                const regionStr = city.region ? `<span class="text-xs text-white/50 block">${city.region}</span>` : '';
+                const escapedName = escapeHtml(city.name);
+                const escapedKey = encodeURIComponent(city.key || '');
+                const regionStr = city.region ? `<span class="text-xs text-white/50 block">${escapeHtml(city.region)}</span>` : '';
                 const majorBadge = city.is_major ? '<span class="text-[10px] bg-teal-500/20 text-teal-300 px-1.5 py-0.5 rounded ml-2">Крупный</span>' : '';
                 html += `
-                    <a href="/city/${city.key}" 
+                    <a href="/city/${escapedKey}" 
                        data-index="${idx}"
                        class="search-result-item block px-4 py-2.5 hover:bg-white/15 transition-colors border-b border-white/5 last:border-0 flex items-center justify-between">
                         <div>
-                            <div class="font-medium text-sm text-white flex items-center">${city.name} ${majorBadge}</div>
+                            <div class="font-medium text-sm text-white flex items-center">${escapedName} ${majorBadge}</div>
                             ${regionStr}
                         </div>
                         <i data-lucide="arrow-right" class="w-4 h-4 text-white/40"></i>
@@ -159,10 +174,12 @@
         html += '<span class="text-xs text-white/60 mr-1 flex items-center gap-1"><i data-lucide="star" class="w-3.5 h-3.5 text-amber-300"></i> Избранное:</span>';
         
         favs.forEach(f => {
+            const escapedKey = encodeURIComponent(f.key || '');
+            const escapedName = escapeHtml(f.name || f.key);
             html += `
                 <div class="inline-flex items-center gap-1 bg-white/10 hover:bg-white/20 border border-white/15 rounded-lg px-2.5 py-1 text-xs text-white transition-colors">
-                    <a href="/city/${f.key}" class="hover:underline">${f.name}</a>
-                    <button type="button" class="remove-fav-btn text-white/40 hover:text-rose-300 ml-1" data-key="${f.key}" title="Удалить">✕</button>
+                    <a href="/city/${escapedKey}" class="hover:underline">${escapedName}</a>
+                    <button type="button" class="remove-fav-btn text-white/40 hover:text-rose-300 ml-1" data-key="${escapedKey}" title="Удалить">✕</button>
                 </div>
             `;
         });
@@ -503,20 +520,36 @@
         const name = meta.dataset.cityName || key;
         const now = new Date();
         const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        const nowMs = Date.now();
+        const MAX_AGE_MS = 24 * 60 * 60 * 1000; // 24 hours
+        const MAX_ENTRIES = 50;
 
         try {
             const raw = localStorage.getItem('airtrace_city_visits');
-            const visits = raw ? JSON.parse(raw) : {};
-            visits[key] = {
+            let visits = raw ? JSON.parse(raw) : {};
+            if (typeof visits !== 'object' || visits === null || Array.isArray(visits)) {
+                visits = {};
+            }
+
+            // Evict visits older than 24h
+            const filteredEntries = Object.entries(visits).filter(([_, item]) => {
+                return item && typeof item === 'object' && (nowMs - (item.timestamp || 0) < MAX_AGE_MS);
+            });
+
+            // Evict oldest if exceeding max entries limit
+            filteredEntries.sort((a, b) => (b[1].timestamp || 0) - (a[1].timestamp || 0));
+            const trimmed = Object.fromEntries(filteredEntries.slice(0, MAX_ENTRIES - 1));
+
+            trimmed[key] = {
                 key: key,
                 name: name,
                 aqi: aqi,
                 category: category,
                 color: color,
                 time: timeStr,
-                timestamp: Date.now()
+                timestamp: nowMs
             };
-            localStorage.setItem('airtrace_city_visits', JSON.stringify(visits));
+            localStorage.setItem('airtrace_city_visits', JSON.stringify(trimmed));
         } catch (e) {
             console.error('Failed to save city visit', e);
         }
@@ -540,12 +573,16 @@
             if (visit && visit.aqi !== undefined) {
                 const statusSlot = card.querySelector('.city-status-slot');
                 const aqiSlot = card.querySelector('.city-aqi-badge-slot');
+                const escapedColor = escapeHtml(visit.color || '#10b981');
+                const escapedCategory = escapeHtml(visit.category || 'Хорошо');
+                const escapedTime = escapeHtml(visit.time || '');
+                const safeAqi = parseInt(visit.aqi, 10) || 0;
 
                 if (statusSlot) {
                     statusSlot.innerHTML = `
-                        <span class="text-[11px] px-2 py-0.5 rounded-md font-medium flex items-center gap-1.5 w-fit shadow-sm" style="background-color: ${visit.color}25; border: 1px solid ${visit.color}55; color: #ffffff;">
-                            <span class="w-1.5 h-1.5 rounded-full" style="background-color: ${visit.color}"></span>
-                            <span>AQI ${visit.aqi} • ${visit.category} (${visit.time})</span>
+                        <span class="text-[11px] px-2 py-0.5 rounded-md font-medium flex items-center gap-1.5 w-fit shadow-sm" style="background-color: ${escapedColor}25; border: 1px solid ${escapedColor}55; color: #ffffff;">
+                            <span class="w-1.5 h-1.5 rounded-full" style="background-color: ${escapedColor}"></span>
+                            <span>AQI ${safeAqi} • ${escapedCategory} (${escapedTime})</span>
                         </span>
                     `;
                 }
@@ -554,7 +591,7 @@
                     const existingBtn = aqiSlot.querySelector('.card-fav-star');
                     const btnHtml = existingBtn ? existingBtn.outerHTML : '';
                     aqiSlot.innerHTML = `
-                        <span class="text-xl font-black tracking-tight" style="color: ${visit.color}">${visit.aqi}</span>
+                        <span class="text-xl font-black tracking-tight" style="color: ${escapedColor}">${safeAqi}</span>
                         ${btnHtml}
                         <i data-lucide="arrow-up-right" class="w-4 h-4 opacity-70 group-hover:opacity-100 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-all text-teal-300"></i>
                     `;
@@ -569,30 +606,8 @@
         }
     }
 
-    // Initialize all components on DOM ready
-    document.addEventListener('DOMContentLoaded', function () {
-        initCitySearch();
-        renderFavoritesBar();
-        initFavoriteButton();
-        renderForecastChart();
-        renderTrendsChart();
-        saveCurrentCityVisit();
-        hydrateCatalogCardsFromLocalStorage();
-        initCardFavoriteButtons();
-
-        // Re-render charts on window resize
-        let resizeTimer = null;
-        window.addEventListener('resize', function () {
-            clearTimeout(resizeTimer);
-            resizeTimer = setTimeout(() => {
-                renderForecastChart();
-                renderTrendsChart();
-            }, 200);
-        });
-    });
-
-    // Also run immediately in case DOM is already ready
-    if (document.readyState === 'interactive' || document.readyState === 'complete') {
+    // Unified initialization on DOM ready
+    function init() {
         initCitySearch();
         renderFavoritesBar();
         initFavoriteButton();
@@ -602,4 +617,20 @@
         hydrateCatalogCardsFromLocalStorage();
         initCardFavoriteButtons();
     }
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', init);
+    } else {
+        init();
+    }
+
+    // Re-render charts on window resize
+    let resizeTimer = null;
+    window.addEventListener('resize', function () {
+        clearTimeout(resizeTimer);
+        resizeTimer = setTimeout(() => {
+            renderForecastChart();
+            renderTrendsChart();
+        }, 200);
+    });
 })();

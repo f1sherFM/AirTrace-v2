@@ -165,3 +165,67 @@ def test_v3_city_not_found():
     assert response.status_code == 404
     data = response.json()
     assert "detail" in data or "message" in data
+
+
+def test_v3_catalog_alphabetical_order():
+    response = client.get("/v3/cities?limit=100")
+    assert response.status_code == 200
+    cities = response.json()["cities"]
+    names = [c["name"].lower() for c in cities]
+    assert names == sorted(names), "Cities catalog must be sorted alphabetically by name"
+
+
+def test_v3_confidence_calculator_worst_case_and_bounds():
+    from domain.confidence.calculator import ConfidenceCalculator, ConfidenceInputs
+    calc = ConfidenceCalculator()
+
+    # Worst case: fallback source + unavailable + stale (24h+) + fallback flag
+    worst_inputs = ConfidenceInputs(
+        data_source="fallback",
+        source_available=False,
+        cache_age_seconds=86400 * 2,
+        fallback_used=True,
+    )
+    score, explanation = calc.calculate(worst_inputs)
+    assert score == 0.0
+    assert 0.0 <= score <= 1.0
+    assert "Резервный источник" in explanation
+    assert "основной источник недоступен" in explanation
+    assert "использован резерв" in explanation
+
+    # Best case: live + fresh (<15m) + available + no fallback
+    best_inputs = ConfidenceInputs(
+        data_source="live",
+        source_available=True,
+        cache_age_seconds=300,
+        fallback_used=False,
+    )
+    best_score, best_exp = calc.calculate(best_inputs)
+    assert best_score == 0.95
+    assert "Прямой онлайн-замер" in best_exp
+    assert "данные свежие" in best_exp
+    assert "без сбоев" in best_exp
+
+
+def test_v3_ranking_cache_bounded():
+    from application.queries.ranking import (
+        _CITY_SNAPSHOTS_CACHE,
+        SNAPSHOT_CACHE_MAX_ENTRIES,
+        record_city_ranking_snapshot,
+    )
+    _CITY_SNAPSHOTS_CACHE.clear()
+
+    # Fill cache up to limit + 10
+    for i in range(SNAPSHOT_CACHE_MAX_ENTRIES + 10):
+        record_city_ranking_snapshot(
+            key=f"test_city_{i}",
+            name=f"City {i}",
+            lat=55.0,
+            lon=37.0,
+            aqi=30 + (i % 20),
+            aqi_category="Хорошо",
+            aqi_color="#00E400",
+        )
+
+    assert len(_CITY_SNAPSHOTS_CACHE) <= SNAPSHOT_CACHE_MAX_ENTRIES
+    _CITY_SNAPSHOTS_CACHE.clear()

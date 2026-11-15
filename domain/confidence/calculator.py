@@ -72,6 +72,13 @@ class ConfidenceCalculator:
         return ", ".join(parts)
 
     def calculate(self, inputs: ConfidenceInputs) -> Tuple[float, str]:
+        """Calculates a bounded confidence score [0.0, 1.0] and a Russian explanatory label.
+        
+        Note on worst-case inputs: If data_source is fallback (base 0.45) with primary
+        unavailable (-0.20), maximum age penalty (-0.30), and fallback flag (-0.25),
+        the raw score reaches -0.30. This is safely clamped to 0.0. The UI handles
+        0.0 transparently without hiding data, presenting the exact rationale to users.
+        """
         score = self._source_base_score(inputs.data_source)
 
         if not inputs.source_available:

@@ -4,13 +4,18 @@ from __future__ import annotations
 
 import asyncio
 from datetime import datetime, timezone
+import logging
 from types import SimpleNamespace
 from typing import Any, Optional
 
+from application.queries.ranking import record_city_ranking_snapshot
 from core.settings import get_cities_mapping
+from domain.advisory import generate_activity_advisories
 from utils import MOSCOW_TZ, format_russian_timestamp
 
 from .service import WebAppService
+
+logger = logging.getLogger(__name__)
 
 
 def _utc_now_iso() -> str:
@@ -299,7 +304,6 @@ async def build_city_page_context(
     data_status_notice = build_data_status_notice(current)
     if not is_custom and city_key:
         try:
-            from application.queries.ranking import record_city_ranking_snapshot
             record_city_ranking_snapshot(
                 key=city_key,
                 name=city.get("name", city_key),
@@ -312,9 +316,8 @@ async def build_city_page_context(
                 nmu_level=current.get("nmu_risk") or "none",
                 pm2_5=current.get("pollutants", {}).get("pm2_5") if isinstance(current.get("pollutants"), dict) else None,
             )
-        except Exception:
-            pass
-    from domain.advisory import generate_activity_advisories
+        except Exception as exc:
+            logger.debug("Failed to record city ranking snapshot for %s: %s", city_key, exc, exc_info=True)
     advisory = generate_activity_advisories(
         aqi_value=current.get("aqi", {}).get("value", 0),
         aqi_category=current.get("aqi", {}).get("category", "Хорошо"),
