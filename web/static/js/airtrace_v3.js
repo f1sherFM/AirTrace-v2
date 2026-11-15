@@ -1051,6 +1051,242 @@
         chartContainer.innerHTML = svgHtml;
     }
 
+    // -------------------------------------------------------------
+    // 8. PWA Service Worker & Network Resilience (AirTrace v3.3 Feature)
+    // -------------------------------------------------------------
+    function showToast(msg, duration = 3000) {
+        const toast = document.getElementById('share-toast');
+        const textEl = document.getElementById('share-toast-msg');
+        if (!toast || !textEl) return;
+        textEl.textContent = msg;
+        toast.classList.remove('hidden');
+        clearTimeout(toast._timer);
+        toast._timer = setTimeout(() => {
+            toast.classList.add('hidden');
+        }, duration);
+    }
+
+    function initPWA() {
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js').then((reg) => {
+                    reg.onupdatefound = () => {
+                        const installingWorker = reg.installing;
+                        if (installingWorker) {
+                            installingWorker.onstatechange = () => {
+                                if (installingWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                                    showToast('Доступна новая версия AirTrace');
+                                }
+                            };
+                        }
+                    };
+                }).catch((err) => {
+                    console.warn('SW registration skipped', err);
+                });
+            });
+        }
+
+        let deferredInstallPrompt = null;
+        const installBtn = document.getElementById('pwa-install-btn');
+
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredInstallPrompt = e;
+            if (installBtn) {
+                installBtn.classList.remove('hidden');
+            }
+        });
+
+        if (installBtn) {
+            installBtn.addEventListener('click', async () => {
+                if (!deferredInstallPrompt) return;
+                deferredInstallPrompt.prompt();
+                const choice = await deferredInstallPrompt.userChoice;
+                if (choice.outcome === 'accepted') {
+                    installBtn.classList.add('hidden');
+                    showToast('Приложение AirTrace установлено!');
+                }
+                deferredInstallPrompt = null;
+            });
+        }
+
+        window.addEventListener('appinstalled', () => {
+            if (installBtn) installBtn.classList.add('hidden');
+            showToast('AirTrace готов к работе на вашем устройстве!');
+        });
+
+        const offlineToast = document.getElementById('offline-toast');
+        function updateOnlineStatus() {
+            if (!offlineToast) return;
+            if (!navigator.onLine) {
+                offlineToast.classList.remove('hidden');
+            } else {
+                offlineToast.classList.add('hidden');
+            }
+        }
+        window.addEventListener('offline', updateOnlineStatus);
+        window.addEventListener('online', () => {
+            updateOnlineStatus();
+            showToast('Связь восстановлена');
+        });
+        updateOnlineStatus();
+    }
+
+    // -------------------------------------------------------------
+    // 9. Web Share API & Story Card Generator (AirTrace v3.3 Feature)
+    // -------------------------------------------------------------
+    function roundRect(ctx, x, y, width, height, radius) {
+        ctx.beginPath();
+        ctx.moveTo(x + radius, y);
+        ctx.lineTo(x + width - radius, y);
+        ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
+        ctx.lineTo(x + width, y + height - radius);
+        ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
+        ctx.lineTo(x + radius, y + height);
+        ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
+        ctx.lineTo(x, y + radius);
+        ctx.quadraticCurveTo(x, y, x + radius, y);
+        ctx.closePath();
+    }
+
+    function generateAndDownloadSocialCard(data) {
+        const canvas = document.createElement('canvas');
+        canvas.width = 1080;
+        canvas.height = 1080;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return;
+
+        // Background Gradient
+        const bgGrad = ctx.createRadialGradient(200, 200, 50, 540, 540, 750);
+        bgGrad.addColorStop(0, '#0f766e');
+        bgGrad.addColorStop(0.5, '#0f172a');
+        bgGrad.addColorStop(1, '#090d16');
+        ctx.fillStyle = bgGrad;
+        ctx.fillRect(0, 0, 1080, 1080);
+
+        // Glassmorphism Main Card
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.08)';
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
+        ctx.lineWidth = 3;
+        roundRect(ctx, 90, 90, 900, 900, 48);
+        ctx.fill();
+        ctx.stroke();
+
+        // Logo & Brand Header
+        ctx.fillStyle = '#2dd4bf';
+        ctx.font = 'bold 36px "IBM Plex Sans", -apple-system, sans-serif';
+        ctx.fillText('AirTrace RU v3.3', 150, 180);
+
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
+        ctx.font = '24px "IBM Plex Sans", -apple-system, sans-serif';
+        const dateStr = new Date().toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' });
+        ctx.fillText(dateStr, 150, 220);
+
+        // City Name
+        ctx.fillStyle = '#ffffff';
+        ctx.font = 'bold 64px "IBM Plex Sans", -apple-system, sans-serif';
+        ctx.fillText(data.cityName, 150, 340);
+
+        // Large AQI Number
+        ctx.fillStyle = data.color || '#10b981';
+        ctx.font = 'bold 170px "IBM Plex Sans", -apple-system, sans-serif';
+        ctx.fillText(data.aqi, 150, 520);
+
+        // AQI Category
+        ctx.font = 'bold 40px "IBM Plex Sans", -apple-system, sans-serif';
+        ctx.fillText(data.category, 150, 600);
+
+        // Details
+        let yPos = 690;
+        if (data.pm25) {
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+            ctx.font = '28px "IBM Plex Sans", -apple-system, sans-serif';
+            ctx.fillText(`Концентрация PM2.5: ${data.pm25} мкг/м³`, 150, yPos);
+            yPos += 45;
+        }
+
+        if (data.nmu && data.nmu !== 'none') {
+            ctx.fillStyle = '#f59e0b';
+            ctx.font = 'bold 26px "IBM Plex Sans", -apple-system, sans-serif';
+            ctx.fillText(`⚠️ Действует режим НМУ («Чёрное небо»)`, 150, yPos);
+            yPos += 45;
+        }
+
+        // Footer note
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.4)';
+        ctx.font = '22px "IBM Plex Sans", -apple-system, sans-serif';
+        ctx.fillText('airtrace.ru • Мониторинг атмосферного воздуха России', 150, 910);
+
+        // Download PNG
+        const dataUrl = canvas.toDataURL('image/png');
+        const link = document.createElement('a');
+        link.download = `airtrace_${encodeURIComponent(data.cityName)}_${data.aqi}.png`;
+        link.href = dataUrl;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        showToast('Карточка для соцсетей сохранена!');
+    }
+
+    function initShareFeatures() {
+        const shareBtn = document.getElementById('city-share-btn');
+        const downloadCardBtn = document.getElementById('city-download-card-btn');
+
+        if (shareBtn) {
+            shareBtn.addEventListener('click', async function () {
+                const cityName = this.getAttribute('data-city-name') || 'Город';
+                const aqi = this.getAttribute('data-aqi') || '0';
+                const category = this.getAttribute('data-category') || '';
+                const shareText = `💨 Воздух в г. ${cityName}: AQI ${aqi} • ${category}. Подробный прогноз на AirTrace:`;
+                const shareUrl = window.location.href;
+
+                if (navigator.share) {
+                    try {
+                        await navigator.share({
+                            title: `AirTrace — Качество воздуха в г. ${cityName}`,
+                            text: shareText,
+                            url: shareUrl
+                        });
+                        return;
+                    } catch (err) {
+                        if (err.name !== 'AbortError') {
+                            console.warn('Share API failed, fallback to clipboard', err);
+                        } else {
+                            return;
+                        }
+                    }
+                }
+
+                try {
+                    await navigator.clipboard.writeText(shareText + ' ' + shareUrl);
+                    showToast('Ссылка и замер скопированы в буфер обмена!');
+                } catch {
+                    showToast('Скопируйте адрес из адресной строки');
+                }
+            });
+        }
+
+        if (downloadCardBtn) {
+            downloadCardBtn.addEventListener('click', function () {
+                const cityName = this.getAttribute('data-city-name') || 'Город';
+                const aqi = this.getAttribute('data-aqi') || '0';
+                const category = this.getAttribute('data-category') || 'Хорошо';
+                const color = this.getAttribute('data-color') || '#10b981';
+                const pm25 = this.getAttribute('data-pm25');
+                const nmu = this.getAttribute('data-nmu');
+
+                generateAndDownloadSocialCard({
+                    cityName,
+                    aqi,
+                    category,
+                    color,
+                    pm25,
+                    nmu
+                });
+            });
+        }
+    }
+
     // Unified initialization on DOM ready
     function init() {
         initCitySearch();
@@ -1063,6 +1299,8 @@
         initCardFavoriteButtons();
         initInteractiveMap();
         initComparePage();
+        initPWA();
+        initShareFeatures();
     }
 
     if (document.readyState === 'loading') {

@@ -14,7 +14,7 @@ from typing import Any, Optional
 from urllib.parse import urlencode
 
 import uvicorn
-from fastapi import FastAPI, Form, HTTPException, Query, Request
+from fastapi import FastAPI, Form, HTTPException, Query, Request, Response
 from fastapi.responses import HTMLResponse, RedirectResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
@@ -98,6 +98,30 @@ async def add_charset_to_html(request: Request, call_next):
     if "text/html" in content_type and "charset" not in content_type:
         response.headers["content-type"] = "text/html; charset=utf-8"
     return response
+
+
+@app.get("/sw.js")
+async def service_worker():
+    sw_path = _static_dir / "sw.js"
+    if not sw_path.exists():
+        raise HTTPException(status_code=404, detail="Service worker not found")
+    return Response(
+        content=sw_path.read_text(encoding="utf-8"),
+        media_type="application/javascript",
+        headers={"Service-Worker-Allowed": "/", "Cache-Control": "no-cache"},
+    )
+
+
+@app.get("/manifest.json")
+async def web_manifest():
+    manifest_path = _static_dir / "manifest.json"
+    if not manifest_path.exists():
+        raise HTTPException(status_code=404, detail="Manifest not found")
+    return Response(
+        content=manifest_path.read_text(encoding="utf-8"),
+        media_type="application/manifest+json",
+        headers={"Cache-Control": "public, max-age=3600"},
+    )
 
 def _render_city_error(request: Request, city: dict[str, Any], error_message: str):
     return templates.TemplateResponse(

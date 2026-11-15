@@ -4,6 +4,25 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}AirTrace RU v3{% endblock %}</title>
+    <!-- PWA Meta & Icons -->
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#0f766e">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="AirTrace">
+    <link rel="apple-touch-icon" href="/static/favicon.svg">
+
+    <!-- OpenGraph & Social Sharing Meta (AirTrace v3.3) -->
+    <meta property="og:site_name" content="AirTrace RU">
+    <meta property="og:type" content="website">
+    <meta property="og:locale" content="ru_RU">
+    <meta property="og:image" content="/static/favicon.svg">
+    {% block og_tags %}
+    <meta property="og:title" content="AirTrace RU — Мониторинг качества воздуха городов России">
+    <meta property="og:description" content="75+ городов РФ, интерактивная карта, режим НМУ, прогнозы и персональные рекомендации по здоровью.">
+    {% endblock %}
+    <meta name="twitter:card" content="summary_large_image">
+
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
@@ -119,9 +138,16 @@
                             {% endif %}
                         </nav>
 
-                        <div class="flex items-center gap-2 text-xs" aria-live="polite" aria-label="Backend API status">
-                            <span class="w-2.5 h-2.5 rounded-full {% if api_reachable is defined and not api_reachable %}bg-red-500{% elif api_status == 'healthy' %}bg-green-500{% elif api_status == 'unhealthy' %}bg-red-500{% else %}bg-yellow-400{% endif %}"></span>
-                            <span>{% if api_reachable is defined and not api_reachable %}API недоступен{% else %}API {{ translate_api_status(api_status) }}{% endif %}</span>
+                        <div class="flex items-center gap-3">
+                            <button type="button" id="pwa-install-btn" class="hidden px-3 py-1.5 rounded-xl bg-teal-500/20 text-teal-300 border border-teal-400/40 text-xs font-semibold hover:bg-teal-500/30 transition-all flex items-center gap-1.5 shadow-sm" title="Установить AirTrace на рабочий стол или телефон">
+                                <i data-lucide="download" class="w-3.5 h-3.5"></i>
+                                <span>Установить приложение</span>
+                            </button>
+
+                            <div class="flex items-center gap-2 text-xs" aria-live="polite" aria-label="Backend API status">
+                                <span class="w-2.5 h-2.5 rounded-full {% if api_reachable is defined and not api_reachable %}bg-red-500{% elif api_status == 'healthy' %}bg-green-500{% elif api_status == 'unhealthy' %}bg-red-500{% else %}bg-yellow-400{% endif %}"></span>
+                                <span>{% if api_reachable is defined and not api_reachable %}API недоступен{% else %}API {{ translate_api_status(api_status) }}{% endif %}</span>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -139,6 +165,17 @@
             <p>&copy; 2026 AirTrace v3. Мониторинг атмосферного воздуха городов России • ПДК SanPiN • Режим НМУ • Персональные рекомендации</p>
         </footer>
     </div>
+    <!-- PWA & Toast Notifications (AirTrace v3.3) -->
+    <div id="offline-toast" class="hidden fixed bottom-5 left-1/2 -translate-x-1/2 z-[200] px-4 py-2.5 rounded-2xl bg-amber-500 text-slate-950 font-semibold text-xs shadow-2xl backdrop-blur-md flex items-center gap-2">
+        <i data-lucide="wifi-off" class="w-4 h-4"></i>
+        <span>Оффлайн-режим: отображаются сохранённые данные</span>
+    </div>
+
+    <div id="share-toast" class="hidden fixed bottom-5 right-5 z-[200] px-4 py-2.5 rounded-2xl bg-teal-400 text-slate-950 font-bold text-xs shadow-2xl backdrop-blur-md flex items-center gap-2">
+        <i data-lucide="check" class="w-4 h-4"></i>
+        <span id="share-toast-msg">Ссылка скопирована в буфер обмена!</span>
+    </div>
+
     <script src="/static/js/airtrace_v3.js"></script>
     <script>if(window.lucide) lucide.createIcons();</script>
     {% block extra_scripts %}{% endblock %}

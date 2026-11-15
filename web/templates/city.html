@@ -4,6 +4,12 @@
 {% block body_class %}{{ aqi_class }} min-h-screen{% endblock %}
 {% block location_display %}{{ current_city.name }} • Качество воздуха{% endblock %}
 
+{% block og_tags %}
+<meta property="og:title" content="Качество воздуха в г. {{ current_city.name }} — AQI {{ data.aqi.value }} ({{ data.aqi.category }})">
+<meta property="og:description" content="Текущее состояние атмосферы в г. {{ current_city.name }}: индекс AQI {{ data.aqi.value }} • {{ data.aqi.category }}. Почасовой прогноз и рекомендации для здоровья на AirTrace.">
+<meta property="og:url" content="http://localhost:3000/city/{{ city_key }}">
+{% endblock %}
+
 {% block content %}
 {% if data_status_notice %}
 <section
@@ -48,6 +54,33 @@
                     >
                         <i data-lucide="star" class="w-3.5 h-3.5"></i>
                         <span>В избранное</span>
+                    </button>
+                    <button 
+                        type="button" 
+                        id="city-share-btn"
+                        data-city-name="{{ current_city.name }}"
+                        data-aqi="{{ data.aqi.value }}"
+                        data-category="{{ data.aqi.category }}"
+                        class="btn-glass px-3 py-1 rounded-full text-xs flex items-center gap-1.5 transition-all"
+                        title="Поделиться замером"
+                    >
+                        <i data-lucide="share-2" class="w-3.5 h-3.5 text-teal-300"></i>
+                        <span>Поделиться</span>
+                    </button>
+                    <button 
+                        type="button" 
+                        id="city-download-card-btn"
+                        data-city-name="{{ current_city.name }}"
+                        data-aqi="{{ data.aqi.value }}"
+                        data-category="{{ data.aqi.category }}"
+                        data-color="{{ data.aqi.color }}"
+                        data-pm25="{{ data.pollutants.pm2_5 if data.pollutants else '' }}"
+                        data-nmu="{{ data.nmu_risk or 'none' }}"
+                        class="btn-glass px-3 py-1 rounded-full text-xs flex items-center gap-1.5 transition-all"
+                        title="Скачать графическую карточку для соцсетей"
+                    >
+                        <i data-lucide="image" class="w-3.5 h-3.5 text-sky-300"></i>
+                        <span>Карточка в соцсети</span>
                     </button>
                     {% endif %}
                 </div>
