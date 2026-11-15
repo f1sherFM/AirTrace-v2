@@ -180,7 +180,55 @@
                 saveFavorites(updated);
                 renderFavoritesBar();
                 updateCityFavoriteBtn();
+                syncAllCardStars();
             });
+        });
+    }
+
+    function updateStarVisual(btn, isFav) {
+        if (isFav) {
+            btn.innerHTML = '<i data-lucide="star" class="w-4 h-4 fill-amber-300 text-amber-300"></i>';
+            btn.setAttribute('title', 'Удалить из избранного');
+        } else {
+            btn.innerHTML = '<i data-lucide="star" class="w-4 h-4 text-white/30 hover:text-amber-300"></i>';
+            btn.setAttribute('title', 'Добавить в избранное');
+        }
+        if (window.lucide) window.lucide.createIcons();
+    }
+
+    function syncAllCardStars() {
+        const favs = getFavorites();
+        document.querySelectorAll('.card-fav-star').forEach(btn => {
+            const key = btn.getAttribute('data-city-key');
+            const isFav = favs.some(f => f.key === key);
+            updateStarVisual(btn, isFav);
+        });
+    }
+
+    function initCardFavoriteButtons() {
+        const favs = getFavorites();
+        document.querySelectorAll('.card-fav-star').forEach(btn => {
+            const key = btn.getAttribute('data-city-key');
+            const isFav = favs.some(f => f.key === key);
+            updateStarVisual(btn, isFav);
+
+            btn.onclick = function (e) {
+                e.preventDefault();
+                e.stopPropagation();
+                const name = btn.getAttribute('data-city-name');
+                let currentFavs = getFavorites();
+                const exists = currentFavs.some(f => f.key === key);
+                if (exists) {
+                    currentFavs = currentFavs.filter(f => f.key !== key);
+                } else {
+                    currentFavs.push({ key, name });
+                }
+                saveFavorites(currentFavs);
+                updateStarVisual(btn, !exists);
+                renderFavoritesBar();
+                updateCityFavoriteBtn();
+                syncAllCardStars();
+            };
         });
     }
 
@@ -503,13 +551,18 @@
                 }
 
                 if (aqiSlot) {
+                    const existingBtn = aqiSlot.querySelector('.card-fav-star');
+                    const btnHtml = existingBtn ? existingBtn.outerHTML : '';
                     aqiSlot.innerHTML = `
                         <span class="text-xl font-black tracking-tight" style="color: ${visit.color}">${visit.aqi}</span>
+                        ${btnHtml}
                         <i data-lucide="arrow-up-right" class="w-4 h-4 opacity-70 group-hover:opacity-100 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-all text-teal-300"></i>
                     `;
                 }
             }
         });
+
+        initCardFavoriteButtons();
 
         if (window.lucide) {
             window.lucide.createIcons();
@@ -525,6 +578,7 @@
         renderTrendsChart();
         saveCurrentCityVisit();
         hydrateCatalogCardsFromLocalStorage();
+        initCardFavoriteButtons();
 
         // Re-render charts on window resize
         let resizeTimer = null;
@@ -546,5 +600,6 @@
         renderTrendsChart();
         saveCurrentCityVisit();
         hydrateCatalogCardsFromLocalStorage();
+        initCardFavoriteButtons();
     }
 })();
