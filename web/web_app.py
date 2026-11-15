@@ -503,6 +503,12 @@ async def alert_settings_test_delivery(rule_id: str):
     return RedirectResponse(url=f"/alerts/settings?{query}", status_code=303)
 
 
+@app.get("/v3/cities")
+async def v3_cities_web(q: Optional[str] = Query(None), limit: int = Query(50, ge=1, le=100)):
+    from application.queries.cities import search_cities
+    return search_cities(query=q, limit=limit)
+
+
 @app.get("/api/health")
 async def api_health():
     backend_health = await air_service.check_health()
