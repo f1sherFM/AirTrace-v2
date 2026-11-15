@@ -146,7 +146,9 @@
                     {% set act = (card.advisories.activities | selectattr("category", "equalto", "outdoor_sports") | first) if card.advisories else None %}
                     <div class="flex items-center justify-between p-2 rounded-xl bg-white/5 text-xs">
                         <span class="font-medium text-white">{{ card.city.name }}</span>
-                        {% if act %}
+                        {% if not card.is_available %}
+                        <span class="opacity-60 text-[11px]">Нет данных</span>
+                        {% elif act %}
                         <span class="px-2 py-0.5 rounded text-[11px] font-bold" style="background-color: {{ act.badge_color }}25; color: {{ act.badge_color }};">
                             {{ act.status_label }}
                         </span>
@@ -169,7 +171,9 @@
                     {% set act = (card.advisories.activities | selectattr("category", "equalto", "ventilation") | first) if card.advisories else None %}
                     <div class="flex items-center justify-between p-2 rounded-xl bg-white/5 text-xs">
                         <span class="font-medium text-white">{{ card.city.name }}</span>
-                        {% if act %}
+                        {% if not card.is_available %}
+                        <span class="opacity-60 text-[11px]">Нет данных</span>
+                        {% elif act %}
                         <span class="px-2 py-0.5 rounded text-[11px] font-bold" style="background-color: {{ act.badge_color }}25; color: {{ act.badge_color }};">
                             {{ act.status_label }}
                         </span>
@@ -192,7 +196,9 @@
                     {% set act = (card.advisories.activities | selectattr("category", "equalto", "masks") | first) if card.advisories else None %}
                     <div class="flex items-center justify-between p-2 rounded-xl bg-white/5 text-xs">
                         <span class="font-medium text-white">{{ card.city.name }}</span>
-                        {% if act %}
+                        {% if not card.is_available %}
+                        <span class="opacity-60 text-[11px]">Нет данных</span>
+                        {% elif act %}
                         <span class="px-2 py-0.5 rounded text-[11px] font-bold" style="background-color: {{ act.badge_color }}25; color: {{ act.badge_color }};">
                             {{ act.status_label }}
                         </span>
@@ -215,7 +221,9 @@
                     {% set act = (card.advisories.activities | selectattr("category", "equalto", "air_purifier") | first) if card.advisories else None %}
                     <div class="flex items-center justify-between p-2 rounded-xl bg-white/5 text-xs">
                         <span class="font-medium text-white">{{ card.city.name }}</span>
-                        {% if act %}
+                        {% if not card.is_available %}
+                        <span class="opacity-60 text-[11px]">Нет данных</span>
+                        {% elif act %}
                         <span class="px-2 py-0.5 rounded text-[11px] font-bold" style="background-color: {{ act.badge_color }}25; color: {{ act.badge_color }};">
                             {{ act.status_label }}
                         </span>
@@ -265,15 +273,15 @@
                 <div class="panel rounded-2xl p-3 mb-4 grid grid-cols-3 gap-2 text-center text-xs">
                     <div>
                         <div class="opacity-60 text-[10px]">PM2.5</div>
-                        <div class="font-bold">{{ card.current.pollutants.pm2_5 or "—" }}</div>
+                        <div class="font-bold">{{ card.current.pollutants.pm2_5 if card.current.pollutants.pm2_5 is not none else "—" }}</div>
                     </div>
                     <div>
                         <div class="opacity-60 text-[10px]">PM10</div>
-                        <div class="font-bold">{{ card.current.pollutants.pm10 or "—" }}</div>
+                        <div class="font-bold">{{ card.current.pollutants.pm10 if card.current.pollutants.pm10 is not none else "—" }}</div>
                     </div>
                     <div>
                         <div class="opacity-60 text-[10px]">NO2</div>
-                        <div class="font-bold">{{ card.current.pollutants.no2 or "—" }}</div>
+                        <div class="font-bold">{{ card.current.pollutants.no2 if card.current.pollutants.no2 is not none else "—" }}</div>
                     </div>
                 </div>
                 {% endif %}

@@ -458,9 +458,14 @@ async def build_compare_page_context(
             service.get_trends_data(city_key=key, range_preset="7d"),
             return_exceptions=True,
         )
+        is_available = True
         if isinstance(current_raw, Exception):
             logger.debug("Failed to fetch current air data for compare city %s: %s", key, current_raw)
             current_raw = {}
+            is_available = False
+        elif not current_raw or current_raw.get("aqi") is None:
+            is_available = False
+
         if isinstance(forecast_raw, Exception):
             forecast_raw = []
         if isinstance(trends_raw, Exception):
@@ -468,14 +473,17 @@ async def build_compare_page_context(
 
         current = normalize_current_payload(current_raw, lat=city["lat"], lon=city["lon"])
         
-        # Build v3 lifestyle advisory
-        advisories = generate_activity_advisories(
-            aqi_value=current.get("aqi", {}).get("value", 0),
-            aqi_category=current.get("aqi", {}).get("category", "Хорошо"),
-            nmu_level=current.get("nmu_risk") or "none",
-            pollutants=current.get("pollutants") if isinstance(current.get("pollutants"), dict) else {},
-            weather=current.get("weather") if isinstance(current.get("weather"), dict) else {},
-        )
+        # Build v3 lifestyle advisory only if data is available
+        if is_available:
+            advisories = generate_activity_advisories(
+                aqi_value=current.get("aqi", {}).get("value", 0),
+                aqi_category=current.get("aqi", {}).get("category", "Хорошо"),
+                nmu_level=current.get("nmu_risk") or "none",
+                pollutants=current.get("pollutants") if isinstance(current.get("pollutants"), dict) else {},
+                weather=current.get("weather") if isinstance(current.get("weather"), dict) else {},
+            )
+        else:
+            advisories = None
 
         forecast_points = []
         if isinstance(forecast_raw, list):
@@ -492,6 +500,7 @@ async def build_compare_page_context(
                 "city_key": key,
                 "city": city,
                 "current": current,
+                "is_available": is_available,
                 "advisories": advisories,
                 "forecast_points": forecast_points,
                 "series_color": series_colors[idx % len(series_colors)],
@@ -503,7 +512,7 @@ async def build_compare_page_context(
     # Compute comparative verdict
     verdict = None
     if cards:
-        valid_cards = [c for c in cards if c["current"]["aqi"]["value"] > 0]
+        valid_cards = [c for c in cards if c.get("is_available") and c["current"].get("aqi", {}).get("value") is not None]
         pool = valid_cards if valid_cards else cards
         cleanest = min(pool, key=lambda c: c["current"]["aqi"]["value"])
         highest = max(pool, key=lambda c: c["current"]["aqi"]["value"])
@@ -512,11 +521,20 @@ async def build_compare_page_context(
         diff_pct = round(((max_val - min_val) / max(max_val, 1)) * 100) if max_val > min_val else 0
 
         if len(cards) >= 2 and min_val != max_val:
+            if min_val <= 50:
+                health_note = "Отличные условия для спорта на улице и проветривания."
+            elif min_val <= 100:
+                health_note = "Умеренное качество воздуха — чувствительным группам стоит ограничить длительные нагрузки на открытом воздухе."
+            elif min_val <= 150:
+                health_note = "Качество воздуха ухудшено даже в городе-лидере — рекомендуется сократить пребывание на открытом воздухе."
+            else:
+                health_note = "Внимание: неблагоприятный уровень загрязнения во всех выбранных городах — ограничьте пребывание на улице и закройте окна."
+
             summary = (
                 f"Самый чистый воздух среди выбранных городов прямо сейчас — в г. {cleanest['city']['name']} "
                 f"(AQI {min_val}, {cleanest['current']['aqi']['category']}). "
                 f"Здесь на {diff_pct}% чище, чем в г. {highest['city']['name']} (AQI {max_val}). "
-                f"Отличные условия для спорта на улице и проветривания."
+                f"{health_note}"
             )
         else:
             summary = (

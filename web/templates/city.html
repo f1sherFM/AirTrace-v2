@@ -7,7 +7,7 @@
 {% block og_tags %}
 <meta property="og:title" content="Качество воздуха в г. {{ current_city.name }} — AQI {{ data.aqi.value }} ({{ data.aqi.category }})">
 <meta property="og:description" content="Текущее состояние атмосферы в г. {{ current_city.name }}: индекс AQI {{ data.aqi.value }} • {{ data.aqi.category }}. Почасовой прогноз и рекомендации для здоровья на AirTrace.">
-<meta property="og:url" content="http://localhost:3000/city/{{ city_key }}">
+<meta property="og:url" content="{{ request.url if request is defined else ('/city/' ~ city_key) }}">
 {% endblock %}
 
 {% block content %}

@@ -16,9 +16,7 @@ const PRECACHE_ASSETS = [
 self.addEventListener('install', (event) => {
     event.waitUntil(
         caches.open(CACHE_NAME).then((cache) => {
-            return cache.addAll(PRECACHE_ASSETS).catch((err) => {
-                console.warn('Pre-caching some assets failed', err);
-            });
+            return cache.addAll(PRECACHE_ASSETS);
         }).then(() => self.skipWaiting())
     );
 });
@@ -57,7 +55,9 @@ self.addEventListener('fetch', (event) => {
                 .then((response) => {
                     if (response && response.status === 200) {
                         const copy = response.clone();
-                        caches.open(CACHE_NAME).then((cache) => cache.put(request, copy));
+                        event.waitUntil(
+                            caches.open(CACHE_NAME).then((cache) => cache.put(request, copy)).catch(() => {})
+                        );
                     }
                     return response;
                 })
@@ -82,7 +82,9 @@ self.addEventListener('fetch', (event) => {
                 const networkFetch = fetch(request).then((response) => {
                     if (response && response.status === 200) {
                         const copy = response.clone();
-                        caches.open(CACHE_NAME).then((cache) => cache.put(request, copy));
+                        event.waitUntil(
+                            caches.open(CACHE_NAME).then((cache) => cache.put(request, copy)).catch(() => {})
+                        );
                     }
                     return response;
                 }).catch(() => cached);

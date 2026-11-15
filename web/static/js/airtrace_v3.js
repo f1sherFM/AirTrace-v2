@@ -646,7 +646,11 @@
                     gridBtn.classList.add('text-white/70');
                     gridBtn.setAttribute('aria-selected', 'false');
                 }
-                localStorage.setItem('airtrace_catalog_view', 'map');
+                try {
+                    localStorage.setItem('airtrace_catalog_view', 'map');
+                } catch (e) {
+                    // Safe degradation if localStorage is full or restricted
+                }
 
                 if (!leafletMapInstance) {
                     setupMap();
@@ -668,7 +672,11 @@
                     mapBtn.classList.add('text-white/70');
                     mapBtn.setAttribute('aria-selected', 'false');
                 }
-                localStorage.setItem('airtrace_catalog_view', 'grid');
+                try {
+                    localStorage.setItem('airtrace_catalog_view', 'grid');
+                } catch (e) {
+                    // Safe degradation
+                }
             }
         }
 
@@ -677,11 +685,13 @@
             mapBtn.addEventListener('click', () => setViewMode('map'));
         }
 
-        // Restore saved view preference
-        const savedView = localStorage.getItem('airtrace_catalog_view');
-        if (savedView === 'map') {
-            setViewMode('map');
-        }
+        // Restore saved view preference safely
+        try {
+            const savedView = localStorage.getItem('airtrace_catalog_view');
+            if (savedView === 'map') {
+                setViewMode('map');
+            }
+        } catch (e) {}
 
         function setupMap() {
             if (typeof L === 'undefined') {
@@ -760,18 +770,20 @@
 
                 if (visit && visit.aqi !== undefined) {
                     hasRealReading = true;
-                    color = visit.color || (visit.aqi <= 50 ? '#10b981' : visit.aqi <= 100 ? '#f59e0b' : visit.aqi <= 150 ? '#f97316' : '#ef4444');
+                    const rawColor = visit.color || (visit.aqi <= 50 ? '#10b981' : visit.aqi <= 100 ? '#f59e0b' : visit.aqi <= 150 ? '#f97316' : '#ef4444');
+                    color = /^#[0-9a-fA-F]{3,8}$/.test(rawColor) ? rawColor : '#38bdf8';
                     displayAqi = String(visit.aqi);
                     category = visit.category || 'Замер выполнен';
                 }
 
+                const safeColor = escapeHtml(color);
                 const markerSize = hasRealReading ? 32 : (city.is_major ? 26 : 20);
-                const pulseRing = city.is_major ? `<div class="pulse-ring" style="border: 2px solid ${color};"></div>` : '';
+                const pulseRing = city.is_major ? `<div class="pulse-ring" style="border: 2px solid ${safeColor};"></div>` : '';
 
                 const iconHtml = `
                     <div class="map-marker-pin relative flex items-center justify-center cursor-pointer select-none" style="width: ${markerSize}px; height: ${markerSize}px;">
                         ${pulseRing}
-                        <div class="w-full h-full rounded-full flex items-center justify-center font-black shadow-lg text-white text-[11px] border border-white/30" style="background-color: ${color};">
+                        <div class="w-full h-full rounded-full flex items-center justify-center font-black shadow-lg text-white text-[11px] border border-white/30" style="background-color: ${safeColor};">
                             ${displayAqi}
                         </div>
                     </div>
@@ -791,7 +803,7 @@
                 const escapedCategory = escapeHtml(category);
 
                 const statusBadge = hasRealReading
-                    ? `<span class="text-xs px-2 py-0.5 rounded-full font-bold" style="background-color: ${color}25; color: ${color}; border: 1px solid ${color}55;">AQI ${displayAqi} • ${escapedCategory}</span>`
+                    ? `<span class="text-xs px-2 py-0.5 rounded-full font-bold" style="background-color: ${safeColor}25; color: ${safeColor}; border: 1px solid ${safeColor}55;">AQI ${displayAqi} • ${escapedCategory}</span>`
                     : `<span class="text-[11px] px-2 py-0.5 rounded-full bg-white/10 text-white/60 border border-white/10">Требует замера</span>`;
 
                 const popupContent = `
@@ -857,92 +869,9 @@
     // -------------------------------------------------------------
     // 7. Multi-City Comparison & Multiline Chart (AirTrace v3.2 Feature)
     // -------------------------------------------------------------
-    function initComparePage() {
+    function renderCompareChart() {
         const chartContainer = document.getElementById('compare-multiline-chart');
         const forecastScript = document.getElementById('compare-forecast-data');
-        const allCitiesScript = document.getElementById('compare-all-cities-data');
-        const searchInput = document.getElementById('compare-search-input');
-        const autocompleteBox = document.getElementById('compare-autocomplete-box');
-        const hiddenCitiesInput = document.getElementById('compare-cities-hidden');
-        const removeButtons = document.querySelectorAll('.remove-compare-city-btn');
-
-        // Handle city removal
-        removeButtons.forEach(btn => {
-            btn.addEventListener('click', function () {
-                const keyToRemove = this.getAttribute('data-key');
-                const currentStr = hiddenCitiesInput ? hiddenCitiesInput.value : '';
-                const updatedList = currentStr.split(',').map(s => s.trim()).filter(s => s && s !== keyToRemove);
-                if (updatedList.length > 0) {
-                    window.location.href = '/compare?cities=' + encodeURIComponent(updatedList.join(','));
-                }
-            });
-        });
-
-        // City Search Autocomplete for adding to compare
-        if (searchInput && autocompleteBox && allCitiesScript) {
-            let allCities = [];
-            try {
-                allCities = JSON.parse(allCitiesScript.textContent);
-            } catch (e) {}
-
-            searchInput.addEventListener('input', function (e) {
-                const q = e.target.value.trim().toLowerCase();
-                if (!q) {
-                    autocompleteBox.classList.add('hidden');
-                    autocompleteBox.innerHTML = '';
-                    return;
-                }
-
-                const currentCities = hiddenCitiesInput ? hiddenCitiesInput.value.split(',').map(s => s.trim().toLowerCase()) : [];
-                const matches = allCities.filter(c => {
-                    if (currentCities.includes(c.key.toLowerCase())) return false;
-                    const name = c.name.toLowerCase();
-                    const key = c.key.toLowerCase();
-                    return name.includes(q) || key.includes(q);
-                }).slice(0, 6);
-
-                if (matches.length === 0) {
-                    autocompleteBox.innerHTML = '<div class="p-3 text-xs text-white/60 text-center">Город не найден или уже добавлен</div>';
-                    autocompleteBox.classList.remove('hidden');
-                    return;
-                }
-
-                let html = '<div class="py-1">';
-                matches.forEach(c => {
-                    const escapedName = escapeHtml(c.name);
-                    const escapedRegion = escapeHtml(c.region || '');
-                    html += `
-                        <div class="compare-suggest-item px-4 py-2 hover:bg-white/15 cursor-pointer flex items-center justify-between transition-colors border-b border-white/5 last:border-0" data-key="${c.key}">
-                            <div>
-                                <span class="text-xs font-semibold text-white">${escapedName}</span>
-                                <span class="text-[10px] text-white/50 block">${escapedRegion}</span>
-                            </div>
-                            <span class="text-[10px] text-teal-300 font-bold">+ Добавить</span>
-                        </div>
-                    `;
-                });
-                html += '</div>';
-
-                autocompleteBox.innerHTML = html;
-                autocompleteBox.classList.remove('hidden');
-
-                autocompleteBox.querySelectorAll('.compare-suggest-item').forEach(item => {
-                    item.addEventListener('click', function () {
-                        const newKey = this.getAttribute('data-key');
-                        const nextList = [...currentCities, newKey].slice(0, 4);
-                        window.location.href = '/compare?cities=' + encodeURIComponent(nextList.join(','));
-                    });
-                });
-            });
-
-            document.addEventListener('click', function (e) {
-                if (!searchInput.contains(e.target) && !autocompleteBox.contains(e.target)) {
-                    autocompleteBox.classList.add('hidden');
-                }
-            });
-        }
-
-        // Render Multi-line Chart
         if (!chartContainer || !forecastScript) return;
         let seriesData = [];
         try {
@@ -1049,6 +978,92 @@
 
         svgHtml += `</svg>`;
         chartContainer.innerHTML = svgHtml;
+    }
+
+    function initComparePage() {
+        const allCitiesScript = document.getElementById('compare-all-cities-data');
+        const searchInput = document.getElementById('compare-search-input');
+        const autocompleteBox = document.getElementById('compare-autocomplete-box');
+        const hiddenCitiesInput = document.getElementById('compare-cities-hidden');
+        const removeButtons = document.querySelectorAll('.remove-compare-city-btn');
+
+        // Handle city removal
+        removeButtons.forEach(btn => {
+            btn.addEventListener('click', function () {
+                const keyToRemove = this.getAttribute('data-key');
+                const currentStr = hiddenCitiesInput ? hiddenCitiesInput.value : '';
+                const updatedList = currentStr.split(',').map(s => s.trim()).filter(s => s && s !== keyToRemove);
+                if (updatedList.length > 0) {
+                    window.location.href = '/compare?cities=' + encodeURIComponent(updatedList.join(','));
+                }
+            });
+        });
+
+        // City Search Autocomplete for adding to compare
+        if (searchInput && autocompleteBox && allCitiesScript) {
+            let allCities = [];
+            try {
+                allCities = JSON.parse(allCitiesScript.textContent);
+            } catch (e) {}
+
+            searchInput.addEventListener('input', function (e) {
+                const q = e.target.value.trim().toLowerCase();
+                if (!q) {
+                    autocompleteBox.classList.add('hidden');
+                    autocompleteBox.innerHTML = '';
+                    return;
+                }
+
+                const currentCities = hiddenCitiesInput ? hiddenCitiesInput.value.split(',').map(s => s.trim().toLowerCase()) : [];
+                const matches = allCities.filter(c => {
+                    if (currentCities.includes(c.key.toLowerCase())) return false;
+                    const name = c.name.toLowerCase();
+                    const key = c.key.toLowerCase();
+                    return name.includes(q) || key.includes(q);
+                }).slice(0, 6);
+
+                if (matches.length === 0) {
+                    autocompleteBox.innerHTML = '<div class="p-3 text-xs text-white/60 text-center">Город не найден или уже добавлен</div>';
+                    autocompleteBox.classList.remove('hidden');
+                    return;
+                }
+
+                let html = '<div class="py-1">';
+                matches.forEach(c => {
+                    const escapedName = escapeHtml(c.name);
+                    const escapedRegion = escapeHtml(c.region || '');
+                    html += `
+                        <button type="button" class="compare-suggest-item w-full text-left px-4 py-2 hover:bg-white/15 focus:bg-white/20 focus:outline-none cursor-pointer flex items-center justify-between transition-colors border-b border-white/5 last:border-0" data-key="${c.key}">
+                            <div>
+                                <span class="text-xs font-semibold text-white block">${escapedName}</span>
+                                <span class="text-[10px] text-white/50 block">${escapedRegion}</span>
+                            </div>
+                            <span class="text-[10px] text-teal-300 font-bold">+ Добавить</span>
+                        </button>
+                    `;
+                });
+                html += '</div>';
+
+                autocompleteBox.innerHTML = html;
+                autocompleteBox.classList.remove('hidden');
+
+                autocompleteBox.querySelectorAll('.compare-suggest-item').forEach(item => {
+                    item.addEventListener('click', function () {
+                        const newKey = this.getAttribute('data-key');
+                        const nextList = [...currentCities, newKey].slice(0, 4);
+                        window.location.href = '/compare?cities=' + encodeURIComponent(nextList.join(','));
+                    });
+                });
+            });
+
+            document.addEventListener('click', function (e) {
+                if (!searchInput.contains(e.target) && !autocompleteBox.contains(e.target)) {
+                    autocompleteBox.classList.add('hidden');
+                }
+            });
+        }
+
+        renderCompareChart();
     }
 
     // -------------------------------------------------------------
@@ -1206,9 +1221,13 @@
         }
 
         if (data.nmu && data.nmu !== 'none') {
-            ctx.fillStyle = '#f59e0b';
+            const isConfirmedNmu = data.nmu === 'high' || data.nmu === 'alert' || data.nmu === 'active';
+            ctx.fillStyle = isConfirmedNmu ? '#ef4444' : '#f59e0b';
             ctx.font = 'bold 26px "IBM Plex Sans", -apple-system, sans-serif';
-            ctx.fillText(`⚠️ Действует режим НМУ («Чёрное небо»)`, 150, yPos);
+            const nmuText = isConfirmedNmu
+                ? '⚠️ Действует режим НМУ («Чёрное небо»)'
+                : `ℹ️ Риск НМУ: ${data.nmu}`;
+            ctx.fillText(nmuText, 150, yPos);
             yPos += 45;
         }
 
@@ -1309,14 +1328,14 @@
         init();
     }
 
-    // Re-render charts on window resize
+    // Re-render charts on window resize without re-registering event listeners
     let resizeTimer = null;
     window.addEventListener('resize', function () {
         clearTimeout(resizeTimer);
         resizeTimer = setTimeout(() => {
             renderForecastChart();
             renderTrendsChart();
-            initComparePage();
+            renderCompareChart();
         }, 200);
     });
 })();
