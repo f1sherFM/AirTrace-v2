@@ -21,6 +21,8 @@ from application.queries.v2_readonly import (
 )
 from core.settings import load_cities_config
 from domain.advisory import generate_activity_advisories, OverallAdvisory
+from domain.cardio import CardioAnalysisReport
+from application.queries.cardio import get_city_cardio_analysis
 from schemas import (
     ErrorResponse,
     HealthCheckResponse,
@@ -110,6 +112,17 @@ async def get_activity_advice_v3(
         pollutants=pollutants_dict,
         weather=weather_dict,
     )
+
+
+@router.get("/cardio/{city}", response_model=CardioAnalysisReport, responses=V3_ERROR_RESPONSES)
+async def get_city_cardio_v3(
+    city: str,
+):
+    """Детальный аналитический отчет для ходьбы и бега с учетом качества воздуха, сезона, мороза и осадков."""
+    try:
+        return await get_city_cardio_analysis(city)
+    except KeyError:
+        raise HTTPException(status_code=404, detail=f"Город '{city}' не найден в каталоге")
 
 
 @router.get("/current", response_model=AirQualityDataV3, responses=V3_ERROR_RESPONSES)
