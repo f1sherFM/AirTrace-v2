@@ -46,6 +46,7 @@ from application.web import (  # noqa: E402
     build_compare_page_context,
     build_history_page_context,
     build_index_context,
+    build_running_page_context,
     build_trends_page_context,
     create_csv_export,
     create_json_export,
@@ -60,6 +61,7 @@ from application.web import (  # noqa: E402
     translate_source,
     translate_trend,
 )
+from api.v3 import router as v3_router  # noqa: E402
 from core.settings import get_cities_mapping  # noqa: E402
 
 
@@ -89,6 +91,7 @@ templates.env.globals["translate_source"] = translate_source
 templates.env.globals["translate_freshness"] = translate_freshness
 templates.env.globals["translate_trend"] = translate_trend
 app.mount("/static", StaticFiles(directory=str(_static_dir)), name="static")
+app.include_router(v3_router)
 
 
 @app.middleware("http")
@@ -369,6 +372,29 @@ async def trends_custom_page(
         is_custom=True,
     )
     return templates.TemplateResponse(request, "trends.html", context)
+
+
+@app.get("/running", response_class=UTF8HTMLResponse)
+async def running_default_page(request: Request, city: Optional[str] = Query(None)):
+    """Outdoor cardio & running/walking analysis page (AirTrace v3.5)."""
+    city_key = (city or "moscow").strip().lower()
+    context = await build_running_page_context(
+        request=request,
+        service=air_service,
+        city_key=city_key,
+    )
+    return templates.TemplateResponse(request, "running.html", context)
+
+
+@app.get("/running/{city_slug}", response_class=UTF8HTMLResponse)
+async def running_city_page(request: Request, city_slug: str):
+    """Outdoor cardio & running/walking analysis page for specific city (AirTrace v3.5)."""
+    context = await build_running_page_context(
+        request=request,
+        service=air_service,
+        city_key=city_slug,
+    )
+    return templates.TemplateResponse(request, "running.html", context)
 
 
 @app.get("/compare", response_class=UTF8HTMLResponse)

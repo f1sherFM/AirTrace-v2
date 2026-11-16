@@ -119,6 +119,10 @@
                         {% include 'custom_select.html' %}
 
                         <nav class="flex flex-wrap gap-2">
+                            <a href="{% if city_key and not is_custom %}/running/{{ city_key }}{% else %}/running{% endif %}" class="btn-glass rounded-xl px-3.5 py-2 text-sm flex items-center gap-1.5 hover:border-emerald-400/50">
+                                <i data-lucide="activity" class="w-4 h-4 text-emerald-300"></i>
+                                <span>Бег и ходьба</span>
+                            </a>
                             <a href="/compare?cities=moscow,spb,kazan" class="btn-glass rounded-xl px-3.5 py-2 text-sm flex items-center gap-1.5">
                                 <i data-lucide="columns-2" class="w-4 h-4 text-teal-300"></i>
                                 <span>Сравнение</span>

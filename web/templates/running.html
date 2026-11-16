@@ -1,0 +1,492 @@
+{% extends "base.html" %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block og_tags %}
+<meta property="og:title" content="AirTrace — Бег и ходьба в г. {{ current_city.name }} | RunScore и Зелёные окна">
+<meta property="og:description" content="Интерактивная аналитика для бега и прогулок: RunScore {{ report.overall_score }}/100, температурная адаптация ({{ report.temperature }}°C), 24ч график лучших окон и рекомендации экипировки.">
+{% endblock %}
+
+{% block location_display %}Бег, ходьба и кардио-аналитика • {{ current_city.name }}{% endblock %}
+
+{% block content %}
+<!-- Page Header with City Switcher -->
+<div class="glass rounded-3xl p-6 md:p-8 mb-6">
+    <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
+        <div>
+            <div class="flex items-center gap-2 mb-2">
+                <span class="text-xs px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 font-bold uppercase tracking-wider flex items-center gap-1.5">
+                    <i data-lucide="activity" class="w-3.5 h-3.5"></i>
+                    <span>AirTrace Cardio Engine v3.5</span>
+                </span>
+                {% if report.nmu_active %}
+                <span class="text-xs px-3 py-1 rounded-full bg-rose-500/20 text-rose-300 border border-rose-400/30 font-bold">
+                    ⚠️ Режим НМУ активен
+                </span>
+                {% endif %}
+            </div>
+            <h1 class="text-3xl md:text-5xl font-black text-white tracking-tight flex items-center gap-3">
+                <span>{{ current_city.name }}</span>
+                <span class="text-base font-normal opacity-60">({{ current_city.region or "Россия" }})</span>
+            </h1>
+            <p class="text-sm md:text-base opacity-80 mt-2 max-w-2xl">
+                Специализированная аналитика для ходьбы и бега. Мы объединяем данные чистоты воздуха (AQI, PM2.5) с погодой, 
+                осадками и сибирской калибровкой морозов, чтобы защитить ваши лёгкие и суставы.
+            </p>
+        </div>
+
+        <!-- City Quick Switcher Autocomplete -->
+        <div class="flex flex-col sm:flex-row lg:flex-col items-start lg:items-end gap-3 shrink-0">
+            <div class="relative w-full sm:w-72">
+                <label for="cardio-city-select" class="block text-xs uppercase tracking-wider opacity-70 mb-1.5 font-semibold">
+                    Выбор города (75+ городов):
+                </label>
+                <div class="relative">
+                    <select 
+                        id="cardio-city-select" 
+                        onchange="if(this.value) window.location.href='/running/' + this.value"
+                        class="w-full bg-slate-900/90 border border-white/20 rounded-xl px-4 py-2.5 text-sm text-white font-medium focus:ring-2 focus:ring-emerald-400 focus:outline-none transition-all cursor-pointer shadow-lg"
+                    >
+                        {% for c in all_cities %}
+                        <option value="{{ c.key }}" {% if c.key == city_key %}selected{% endif %}>
+                            {{ c.name }} ({{ c.region }})
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+
+            <!-- Popular Shortcuts -->
+            <div class="flex items-center gap-1.5 text-xs opacity-75">
+                <span class="opacity-60">Быстро:</span>
+                <a href="/running/moscow" class="hover:text-emerald-300 underline underline-offset-2">Москва</a>
+                <span>•</span>
+                <a href="/running/novosibirsk" class="hover:text-emerald-300 underline underline-offset-2">Новосибирск</a>
+                <span>•</span>
+                <a href="/running/spb" class="hover:text-emerald-300 underline underline-offset-2">СПб</a>
+                <span>•</span>
+                <a href="/running/sochi" class="hover:text-emerald-300 underline underline-offset-2">Сочи</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Main RunScore Hero Overview -->
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-6 mb-6">
+    <!-- Big RunScore Dial Card -->
+    <div class="lg:col-span-5 glass rounded-3xl p-6 md:p-8 flex flex-col justify-between relative overflow-hidden border border-white/15">
+        <div class="flex items-start justify-between gap-4 mb-4">
+            <div>
+                <span class="text-xs uppercase font-semibold tracking-wider opacity-70">Общий индекс пробежки</span>
+                <h3 class="text-xl font-bold text-white mt-0.5">RunScore Индекс</h3>
+            </div>
+            <span class="text-xs font-bold px-3 py-1 rounded-full text-white shadow-md" style="background-color: {{ report.score_color }};">
+                {{ report.score_label }}
+            </span>
+        </div>
+
+        <!-- Gauge Visual -->
+        <div class="flex flex-col sm:flex-row items-center gap-6 my-2">
+            <div class="relative w-36 h-36 flex items-center justify-center shrink-0">
+                <!-- SVG circular meter -->
+                <svg class="w-full h-full -rotate-90 transform" viewBox="0 0 120 120">
+                    <circle cx="60" cy="60" r="50" stroke="rgba(255,255,255,0.12)" stroke-width="12" fill="none" />
+                    <circle 
+                        cx="60" 
+                        cy="60" 
+                        r="50" 
+                        stroke="{{ report.score_color }}" 
+                        stroke-width="12" 
+                        stroke-linecap="round" 
+                        stroke-dasharray="314.159" 
+                        stroke-dashoffset="{{ 314.159 - (314.159 * report.overall_score / 100) }}" 
+                        fill="none" 
+                        class="transition-all duration-1000 ease-out"
+                    />
+                </svg>
+                <div class="absolute inset-0 flex flex-col items-center justify-center text-center">
+                    <span class="text-4xl font-black text-white tracking-tight">{{ report.overall_score }}</span>
+                    <span class="text-[11px] font-semibold opacity-60 uppercase">из 100</span>
+                </div>
+            </div>
+
+            <div class="space-y-2 text-center sm:text-left">
+                <div class="text-sm font-bold text-white leading-snug">
+                    {{ report.verdict_summary }}
+                </div>
+                {% if report.best_window_today %}
+                <div class="text-xs text-emerald-300 font-semibold flex items-center gap-1.5 justify-center sm:justify-start">
+                    <i data-lucide="sparkles" class="w-3.5 h-3.5"></i>
+                    <span>{{ report.best_window_today }}</span>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Air vs Weather Sub-scores breakdown -->
+        <div class="grid grid-cols-2 gap-3 pt-4 border-t border-white/10 mt-4 text-xs">
+            <div class="panel rounded-xl p-3">
+                <div class="opacity-70 mb-1 flex items-center gap-1">
+                    <i data-lucide="wind" class="w-3 h-3 text-teal-300"></i>
+                    <span>Воздух (40%)</span>
+                </div>
+                <div class="text-base font-bold text-white">{{ report.air_quality_score }}/100</div>
+                <div class="opacity-60 text-[10px] mt-0.5 truncate">{{ report.air_quality_summary }}</div>
+            </div>
+            <div class="panel rounded-xl p-3">
+                <div class="opacity-70 mb-1 flex items-center gap-1">
+                    <i data-lucide="cloud-sun" class="w-3 h-3 text-amber-300"></i>
+                    <span>Погода и грунт (60%)</span>
+                </div>
+                <div class="text-base font-bold text-white">{{ report.weather_score }}/100</div>
+                <div class="opacity-60 text-[10px] mt-0.5 truncate">{{ report.surface_label }}</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Live Telemetry Matrix (4 Context Pillars) -->
+    <div class="lg:col-span-7 grid grid-cols-2 sm:grid-cols-2 gap-4">
+        <!-- 1. Temperature & Thermal Zone -->
+        <div class="panel rounded-3xl p-5 flex flex-col justify-between hover:bg-white/10 transition-colors">
+            <div>
+                <div class="flex items-center justify-between text-xs opacity-70 mb-2">
+                    <span class="font-semibold uppercase tracking-wider">Температура</span>
+                    <i data-lucide="thermometer" class="w-4 h-4 text-sky-300"></i>
+                </div>
+                <div class="text-3xl font-extrabold text-white">
+                    {{ "%.1f"|format(report.temperature) }}°C
+                </div>
+                <div class="text-xs opacity-75 mt-1">
+                    Ощущается как: <span class="font-bold text-white">{{ "%.1f"|format(report.apparent_temperature) }}°C</span>
+                </div>
+            </div>
+            <div class="mt-3 pt-2.5 border-t border-white/10 text-xs">
+                <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-white/10 text-sky-200">
+                    {{ report.weather_summary }}
+                </span>
+            </div>
+        </div>
+
+        <!-- 2. Surface & Precipitation -->
+        <div class="panel rounded-3xl p-5 flex flex-col justify-between hover:bg-white/10 transition-colors">
+            <div>
+                <div class="flex items-center justify-between text-xs opacity-70 mb-2">
+                    <span class="font-semibold uppercase tracking-wider">Покрытие и осадки</span>
+                    <i data-lucide="footprints" class="w-4 h-4 text-emerald-300"></i>
+                </div>
+                <div class="text-xl font-bold text-white flex items-center gap-2">
+                    {% if report.surface_condition.value == 'ice' %}
+                    <span class="text-rose-400">⚠️ Гололедица</span>
+                    {% elif report.surface_condition.value == 'slush' %}
+                    <span class="text-amber-300">Слякоть / мокро</span>
+                    {% elif report.surface_condition.value == 'snow' %}
+                    <span class="text-sky-200">Снежный покров</span>
+                    {% else %}
+                    <span class="text-emerald-300">Сухо / чистый асфальт</span>
+                    {% endif %}
+                </div>
+                <div class="text-xs opacity-75 mt-1">
+                    Осадки: <span class="font-medium text-white">{{ "%.1f"|format(report.precipitation_mm) }} мм/ч</span>
+                </div>
+            </div>
+            <div class="mt-3 pt-2.5 border-t border-white/10 text-xs opacity-80">
+                {{ report.surface_label }}
+            </div>
+        </div>
+
+        <!-- 3. Wind & Aerodynamics -->
+        <div class="panel rounded-3xl p-5 flex flex-col justify-between hover:bg-white/10 transition-colors">
+            <div>
+                <div class="flex items-center justify-between text-xs opacity-70 mb-2">
+                    <span class="font-semibold uppercase tracking-wider">Ветер и порывы</span>
+                    <i data-lucide="wind" class="w-4 h-4 text-teal-300"></i>
+                </div>
+                <div class="text-3xl font-extrabold text-white">
+                    {{ "%.1f"|format(report.wind_speed_kmh) }} <span class="text-sm font-normal opacity-70">км/ч</span>
+                </div>
+                <div class="text-xs opacity-75 mt-1">
+                    Порывы: <span class="font-bold text-white">{{ "%.1f"|format(report.wind_gusts_kmh) }} км/ч</span>
+                </div>
+            </div>
+            <div class="mt-3 pt-2.5 border-t border-white/10 text-xs opacity-80">
+                {% if report.wind_speed_kmh > 35 %}
+                Сильный встречный ветер, высокий ветрохолод
+                {% elif report.wind_speed_kmh > 20 %}
+                Умеренный бодрящий ветер
+                {% else %}
+                Слабый комфортный ветер
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- 4. Air Purity for Lungs -->
+        <div class="panel rounded-3xl p-5 flex flex-col justify-between hover:bg-white/10 transition-colors">
+            <div>
+                <div class="flex items-center justify-between text-xs opacity-70 mb-2">
+                    <span class="font-semibold uppercase tracking-wider">Чистота воздуха</span>
+                    <i data-lucide="shield-check" class="w-4 h-4 text-emerald-300"></i>
+                </div>
+                <div class="text-3xl font-extrabold text-white flex items-baseline gap-2">
+                    <span>{{ report.air_quality_score }}</span>
+                    <span class="text-xs font-normal opacity-60">индекс лёгких</span>
+                </div>
+                <div class="text-xs opacity-75 mt-1">
+                    Приоритетный фактор: <span class="font-bold text-white">{{ report.dominant_pollutant or "PM2.5" }}</span>
+                </div>
+            </div>
+            <div class="mt-3 pt-2.5 border-t border-white/10 text-xs opacity-80">
+                {% if report.nmu_active %}
+                <span class="text-rose-400 font-semibold">НМУ подавляет рассеивание</span>
+                {% else %}
+                Рассеивание нормальное, лёгкие защищены
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 24-Hour "Green Windows" Interactive Timeline -->
+<section class="glass rounded-3xl p-6 md:p-8 mb-6 relative overflow-hidden">
+    <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
+        <div>
+            <h3 class="text-2xl font-bold flex items-center gap-2">
+                <i data-lucide="clock" class="w-6 h-6 text-emerald-300"></i>
+                <span>Интерактивный таймлайн «Зелёные окна» (24 часа)</span>
+            </h3>
+            <p class="text-sm opacity-75 mt-1">
+                Почасовой расчёт пригодности для кардио. Зелёные часы — идеальное совпадение чистого воздуха и погоды.
+            </p>
+        </div>
+        <div class="flex items-center gap-3 text-xs">
+            <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-emerald-500"></span> Идеально (≥70)</span>
+            <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-amber-500"></span> Умеренно (50-69)</span>
+            <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-rose-500"></span> Нежелательно (&lt;50)</span>
+        </div>
+    </div>
+
+    <!-- Timeline Scroll Container -->
+    <div class="overflow-x-auto pb-4 pt-2 -mx-2 px-2 scrollbar-thin">
+        <div class="min-w-[800px] flex items-end gap-2.5 h-56 pb-2">
+            {% for h in report.hourly_timeline %}
+            <div 
+                class="flex-1 flex flex-col items-center justify-end h-full group relative cursor-pointer"
+                title="{{ h.hour_label }}: RunScore {{ h.run_score }}/100, {{ '%.1f'|format(h.temperature) }}°C, осадки {{ '%.1f'|format(h.precipitation) }} мм"
+            >
+                <!-- Tooltip on Hover -->
+                <div class="opacity-0 group-hover:opacity-100 transition-opacity absolute bottom-full mb-3 pointer-events-none z-30 bg-slate-900/95 border border-white/20 rounded-xl p-3 shadow-2xl text-[11px] whitespace-nowrap -translate-x-1/2 left-1/2">
+                    <div class="font-bold text-white flex items-center justify-between gap-3 mb-1">
+                        <span>{{ h.hour_label }}</span>
+                        <span class="px-1.5 py-0.5 rounded text-[10px] font-bold" style="background-color: {% if h.run_score >= 70 %}#10B981{% elif h.run_score >= 50 %}#F59E0B{% else %}#EF4444{% endif %}; color: #fff;">
+                            Score: {{ h.run_score }}
+                        </span>
+                    </div>
+                    <div class="opacity-80">Темп: {{ "%.1f"|format(h.temperature) }}°C</div>
+                    <div class="opacity-80">AQI: {{ h.aqi }}</div>
+                    <div class="opacity-80">Осадки: {{ "%.1f"|format(h.precipitation) }} мм/ч</div>
+                    {% if h.is_green_window %}
+                    <div class="text-emerald-300 font-bold mt-1">⭐ Зелёное окно</div>
+                    {% endif %}
+                </div>
+
+                <!-- Score Value Pill -->
+                <span class="text-[10px] font-bold mb-1 opacity-75 group-hover:opacity-100 group-hover:scale-110 transition-transform">
+                    {{ h.run_score }}
+                </span>
+
+                <!-- Bar Element -->
+                <div 
+                    class="w-full rounded-t-lg transition-all duration-300 group-hover:brightness-125 relative overflow-hidden"
+                    style="
+                        height: {{ [h.run_score, 12]|max }}%; 
+                        background-color: {% if h.run_score >= 70 %}#10B981{% elif h.run_score >= 50 %}#F59E0B{% elif h.run_score >= 35 %}#F97316{% else %}#EF4444{% endif %};
+                    "
+                >
+                    {% if h.is_green_window %}
+                    <div class="absolute inset-0 bg-white/20 animate-pulse"></div>
+                    {% endif %}
+                </div>
+
+                <!-- Hour Label & Icon -->
+                <div class="mt-2 text-center">
+                    <div class="text-[10px] opacity-60 font-semibold">{{ h.hour_label }}</div>
+                    <div class="text-[9px] font-bold mt-0.5 text-white/90">{{ "%.0f"|format(h.temperature) }}°</div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</section>
+
+<!-- 3 Differentiated Activity Recommendations -->
+<section class="mb-6">
+    <div class="flex items-center justify-between mb-4">
+        <div>
+            <h3 class="text-2xl font-bold flex items-center gap-2">
+                <i data-lucide="gauge" class="w-6 h-6 text-emerald-300"></i>
+                <span>Дифференциация нагрузок: Ходьба vs Трусца vs Темп</span>
+            </h3>
+            <p class="text-sm opacity-75 mt-1">Учитывает объём вентиляции лёгких (минутный объём дыхания) и риск переохлаждения дыхательных путей.</p>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <!-- 1. Walking / Ходьба -->
+        {% set walk = report.recommendations.get('walking') %}
+        {% if walk %}
+        <div class="panel rounded-3xl p-6 flex flex-col justify-between hover:bg-white/10 transition-colors border border-white/15">
+            <div>
+                <!-- Unified Header: Title on top, status badge below -->
+                <div class="flex flex-col items-start gap-1.5 mb-3">
+                    <span class="text-xs font-semibold uppercase tracking-wider opacity-70">🚶 Ходьба и прогулка</span>
+                    <span class="text-[11px] font-bold px-2.5 py-0.5 rounded-full text-white inline-block" style="background-color: {{ walk.badge_color }};">
+                        {{ walk.safety_badge }}
+                    </span>
+                </div>
+                <div class="font-bold text-base text-white mb-2 flex items-center gap-2">
+                    <i data-lucide="footprints" class="w-5 h-5 text-emerald-300 shrink-0"></i>
+                    <span>{{ walk.title }}</span>
+                </div>
+                <p class="text-xs opacity-80 leading-relaxed mb-4">{{ walk.reasoning }}</p>
+
+                <!-- Specific Parameters -->
+                <div class="space-y-2 text-xs bg-white/5 rounded-2xl p-3 border border-white/5">
+                    <div class="flex justify-between"><span class="opacity-60">Рекомендуемое время:</span> <span class="font-bold text-white">{{ walk.recommended_duration_min }} мин</span></div>
+                    <div class="flex justify-between"><span class="opacity-60">Ориентир темпа:</span> <span class="font-bold text-white">{{ walk.max_pace_suggestion }}</span></div>
+                    <div class="flex justify-between"><span class="opacity-60">Дыхание:</span> <span class="font-bold text-emerald-300">{{ walk.breathing_advice }}</span></div>
+                </div>
+            </div>
+            <div class="mt-4 pt-3 border-t border-white/10 text-xs opacity-75">
+                <span class="font-semibold text-white">Экипировка:</span> {{ walk.gear_advice }}
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- 2. Jogging / Легкий бег -->
+        {% set jog = report.recommendations.get('jogging') %}
+        {% if jog %}
+        <div class="panel rounded-3xl p-6 flex flex-col justify-between hover:bg-white/10 transition-colors border border-white/15">
+            <div>
+                <!-- Unified Header: Title on top, status badge below -->
+                <div class="flex flex-col items-start gap-1.5 mb-3">
+                    <span class="text-xs font-semibold uppercase tracking-wider opacity-70">🏃 Легкий бег (трусца / Z2)</span>
+                    <span class="text-[11px] font-bold px-2.5 py-0.5 rounded-full text-white inline-block" style="background-color: {{ jog.badge_color }};">
+                        {{ jog.safety_badge }}
+                    </span>
+                </div>
+                <div class="font-bold text-base text-white mb-2 flex items-center gap-2">
+                    <i data-lucide="activity" class="w-5 h-5 text-teal-300 shrink-0"></i>
+                    <span>{{ jog.title }}</span>
+                </div>
+                <p class="text-xs opacity-80 leading-relaxed mb-4">{{ jog.reasoning }}</p>
+
+                <!-- Specific Parameters -->
+                <div class="space-y-2 text-xs bg-white/5 rounded-2xl p-3 border border-white/5">
+                    <div class="flex justify-between"><span class="opacity-60">Рекомендуемое время:</span> <span class="font-bold text-white">{{ jog.recommended_duration_min }} мин</span></div>
+                    <div class="flex justify-between"><span class="opacity-60">Ориентир темпа:</span> <span class="font-bold text-white">{{ jog.max_pace_suggestion }}</span></div>
+                    <div class="flex justify-between"><span class="opacity-60">Дрейф пульса:</span> <span class="font-bold text-amber-300">+{{ jog.pulse_drift_bpm }} bpm</span></div>
+                    <div class="flex justify-between"><span class="opacity-60">Дыхание:</span> <span class="font-bold text-teal-300">{{ jog.breathing_advice }}</span></div>
+                </div>
+            </div>
+            <div class="mt-4 pt-3 border-t border-white/10 text-xs opacity-75">
+                <span class="font-semibold text-white">Экипировка:</span> {{ jog.gear_advice }}
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- 3. Tempo / Темповый бег и интервалы -->
+        {% set tempo = report.recommendations.get('tempo_run') %}
+        {% if tempo %}
+        <div class="panel rounded-3xl p-6 flex flex-col justify-between hover:bg-white/10 transition-colors border border-white/15">
+            <div>
+                <!-- Unified Header: Title on top, status badge below -->
+                <div class="flex flex-col items-start gap-1.5 mb-3">
+                    <span class="text-xs font-semibold uppercase tracking-wider opacity-70">⚡ Темповый бег и VO2max</span>
+                    <span class="text-[11px] font-bold px-2.5 py-0.5 rounded-full text-white inline-block" style="background-color: {{ tempo.badge_color }};">
+                        {{ tempo.safety_badge }}
+                    </span>
+                </div>
+                <div class="font-bold text-base text-white mb-2 flex items-center gap-2">
+                    <i data-lucide="zap" class="w-5 h-5 text-amber-300 shrink-0"></i>
+                    <span>{{ tempo.title }}</span>
+                </div>
+                <p class="text-xs opacity-80 leading-relaxed mb-4">{{ tempo.reasoning }}</p>
+
+                <!-- Specific Parameters -->
+                <div class="space-y-2 text-xs bg-white/5 rounded-2xl p-3 border border-white/5">
+                    <div class="flex justify-between"><span class="opacity-60">Рекомендуемое время:</span> <span class="font-bold text-white">{{ tempo.recommended_duration_min }} мин</span></div>
+                    <div class="flex justify-between"><span class="opacity-60">Интенсивность:</span> <span class="font-bold text-white">{{ tempo.max_pace_suggestion }}</span></div>
+                    <div class="flex justify-between"><span class="opacity-60">Дрейф пульса:</span> <span class="font-bold text-rose-400">+{{ tempo.pulse_drift_bpm }} bpm</span></div>
+                    <div class="flex justify-between"><span class="opacity-60">Дыхание:</span> <span class="font-bold text-amber-300">{{ tempo.breathing_advice }}</span></div>
+                </div>
+            </div>
+            <div class="mt-4 pt-3 border-t border-white/10 text-xs opacity-75">
+                <span class="font-semibold text-white">Экипировка:</span> {{ tempo.gear_advice }}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</section>
+
+<!-- Gear Checklist & Physiology Guidelines -->
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+    <!-- Dynamic Gear Checklist -->
+    <div class="glass rounded-3xl p-6 md:p-8">
+        <h3 class="text-xl font-bold flex items-center gap-2 mb-4">
+            <i data-lucide="shirt" class="w-5 h-5 text-emerald-300"></i>
+            <span>Чек-лист экипировки для погоды</span>
+        </h3>
+        <p class="text-xs opacity-75 mb-4">
+            Сформирован автоматически под текущую температуру ({{ "%.1f"|format(report.temperature) }}°C) и сцепление покрытия.
+        </p>
+
+        <ul class="space-y-2.5 text-xs">
+            {% for item in report.gear_checklist %}
+            <li class="flex items-start gap-2.5 panel p-3 rounded-xl border border-white/5">
+                <i data-lucide="check-circle-2" class="w-4 h-4 text-emerald-400 shrink-0 mt-0.5"></i>
+                <span class="text-white/90 leading-relaxed">{{ item }}</span>
+            </li>
+            {% endfor %}
+            <li class="flex items-start gap-2.5 panel p-3 rounded-xl border border-white/5">
+                <i data-lucide="droplet" class="w-4 h-4 text-sky-400 shrink-0 mt-0.5"></i>
+                <span class="text-white/90 leading-relaxed">
+                    Рекомендуемый питьевой режим: <strong class="text-white">{{ report.hydration_ml_per_hour }} мл</strong> воды или изотоника в час тренировки.
+                </span>
+            </li>
+        </ul>
+    </div>
+
+    <!-- Science & Physiology Guidelines -->
+    <div class="glass rounded-3xl p-6 md:p-8">
+        <h3 class="text-xl font-bold flex items-center gap-2 mb-4">
+            <i data-lucide="shield-alert" class="w-5 h-5 text-amber-300"></i>
+            <span>Физиология и правила безопасности лёгких</span>
+        </h3>
+        <p class="text-xs opacity-75 mb-4">
+            Медицинские принципы AirTrace для сохранения здоровья сердечно-сосудистой и дыхательной систем.
+        </p>
+
+        <div class="space-y-3 text-xs">
+            <div class="panel p-3.5 rounded-xl border-l-4 border-emerald-400">
+                <div class="font-bold text-white mb-1">Правило 250 метров от автомагистралей</div>
+                <div class="opacity-80 leading-relaxed">
+                    Бег вдоль оживлённых дорог нивелирует пользу тренировки. При форсированном дыхании на темпе объём вентиляции лёгких возрастает с 6 до 80–120 л/мин, увлекая наночастицы сажи и выхлопных газов глубоко в альвеолы.
+                </div>
+            </div>
+
+            <div class="panel p-3.5 rounded-xl border-l-4 border-sky-400">
+                <div class="font-bold text-white mb-1">Сибирская калибровка мороза (-15°C ... -23°C)</div>
+                <div class="opacity-80 leading-relaxed">
+                    Для адаптированных людей бег при температурах до -23°C вполне безопасен при условии использования баффа (прогрев воздуха) и исключения длительных пауз. Настоящий экстремальный мороз начинается от -24°C, когда высок риск рефлекторного спазма бронхов.
+                </div>
+            </div>
+
+            <div class="panel p-3.5 rounded-xl border-l-4 border-rose-400">
+                <div class="font-bold text-white mb-1">Приоритет безопасности связок при гололеде</div>
+                <div class="opacity-80 leading-relaxed">
+                    При ледяном дожде или скрытой гололедице RunScore блокируется на низких значениях даже при идеальном воздухе: риск травм коленей и связок превышает тренировочную пользу.
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -341,6 +341,14 @@ async def build_city_page_context(
         pollutants=current.get("pollutants"),
         weather=current.get("weather"),
     )
+    cardio_report = None
+    if not is_custom and city_key:
+        try:
+            from application.queries.cardio import get_city_cardio_analysis
+            cardio_report = await get_city_cardio_analysis(city_key)
+        except Exception as exc:
+            logger.debug("Failed to get cardio analysis for city %s: %s", city_key, exc)
+
     return {
         "request": request,
         "cities": get_cities_mapping(),
@@ -348,6 +356,7 @@ async def build_city_page_context(
         "city_key": city_key,
         "data": current,
         "advisory": advisory,
+        "cardio_report": cardio_report,
         "forecast": forecast,
         "forecast_groups": forecast_groups,
         "selected_forecast_hours": forecast_hours,
@@ -625,3 +634,69 @@ async def build_alerts_page_context(
         **health_context,
         "title": "AirTrace RU - Подписки на уведомления",
     }
+
+
+async def build_running_page_context(
+    *,
+    request: Any,
+    service: WebAppService,
+    city_key: str = "moscow",
+) -> dict[str, Any]:
+    """Build view context for the dedicated Outdoor Cardio & Running/Walking Dashboard (v3.5)."""
+    from application.queries.cardio import get_city_cardio_analysis
+
+    cities_map = get_cities_mapping()
+    norm_key = (city_key or "moscow").strip().lower()
+    if norm_key not in cities_map:
+        norm_key = "moscow"
+
+    current_city = cities_map[norm_key]
+    health_context = await _health_context(service)
+
+    try:
+        report = await get_city_cardio_analysis(norm_key)
+    except Exception as exc:
+        logger.error("Error generating cardio analysis for %s: %s", norm_key, exc, exc_info=True)
+        from domain.cardio import analyze_city_cardio
+        report = analyze_city_cardio(
+            city_key=norm_key,
+            city_name=current_city.get("name", norm_key),
+            region=current_city.get("region"),
+            current_aqi=40,
+            weather_data={
+                "temperature": 10.0,
+                "apparent_temperature": 9.0,
+                "precipitation": 0.0,
+                "weather_code": 0,
+                "wind_speed": 10.0,
+                "wind_gusts": 15.0,
+            },
+        )
+
+    all_cities = sorted(
+        [
+            {
+                "key": k,
+                "name": v.get("name", k),
+                "region": v.get("region", "РФ"),
+                "is_major": bool(v.get("is_major", False)),
+            }
+            for k, v in cities_map.items()
+        ],
+        key=lambda c: c["name"],
+    )
+
+    timeline_points = [item.model_dump(mode="json") for item in report.hourly_timeline]
+
+    return {
+        "request": request,
+        "cities": cities_map,
+        "all_cities": all_cities,
+        "current_city": current_city,
+        "city_key": norm_key,
+        "report": report,
+        "timeline_json": json.dumps(timeline_points, ensure_ascii=False),
+        "title": f"AirTrace — Бег и ходьба: {current_city['name']} | RunScore и Зелёные окна",
+        **health_context,
+    }
+

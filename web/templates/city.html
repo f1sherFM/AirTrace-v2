@@ -160,6 +160,36 @@
     </div>
 </section>
 
+{% if cardio_report %}
+<!-- Outdoor Cardio / Running Teaser (AirTrace v3.5 Feature) -->
+<section class="mt-6 glass rounded-3xl p-6 border border-emerald-500/30 bg-gradient-to-r from-emerald-950/40 via-teal-950/20 to-slate-900/40">
+    <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-5">
+        <div class="flex items-center gap-4">
+            <div class="w-14 h-14 rounded-2xl flex items-center justify-center font-black text-2xl shrink-0 shadow-lg border border-white/20" style="background-color: {{ cardio_report.score_color }}22; color: {{ cardio_report.score_color }};">
+                {{ cardio_report.overall_score }}
+            </div>
+            <div>
+                <div class="flex items-center gap-2 mb-1">
+                    <span class="text-xs px-2.5 py-0.5 rounded-full font-bold uppercase tracking-wider text-white" style="background-color: {{ cardio_report.score_color }}">
+                        RunScore • {{ cardio_report.score_label }}
+                    </span>
+                    <span class="text-xs opacity-60">Сезонная калибровка</span>
+                </div>
+                <h4 class="text-lg font-bold text-white">Аналитика для бега и ходьбы на улице</h4>
+                <p class="text-xs opacity-80 mt-0.5 max-w-xl">{{ cardio_report.verdict_summary }}</p>
+            </div>
+        </div>
+        <div class="flex items-center gap-3 shrink-0">
+            <a href="/running/{{ city_key }}" class="btn-glass px-5 py-2.5 rounded-xl font-bold text-sm text-emerald-300 hover:text-white hover:bg-emerald-600/30 border-emerald-400/40 flex items-center gap-2 transition-all">
+                <i data-lucide="activity" class="w-4 h-4"></i>
+                <span>Открыть кардио-дашборд</span>
+                <i data-lucide="chevron-right" class="w-4 h-4"></i>
+            </a>
+        </div>
+    </div>
+</section>
+{% endif %}
+
 <!-- Lifestyle & Activity Recommendations (AirTrace v3 Feature) -->
 {% if advisory and advisory.activities %}
 <section class="mt-6 glass rounded-3xl p-6 md:p-8">
