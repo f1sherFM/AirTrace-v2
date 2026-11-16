@@ -41,7 +41,9 @@ class AirTraceAIAdvisor:
         self.base_url = (base_url or os.getenv("AI_BASE_URL", "https://api.groq.com/openai/v1")).rstrip("/")
         self.model = model or os.getenv("AI_MODEL", "openai/gpt-oss-120b")
         self.daily_limit = daily_limit or int(os.getenv("AI_DAILY_RATE_LIMIT", "60"))
-        self.cache_ttl = cache_ttl or int(os.getenv("AI_CACHE_TTL_SECONDS", "1800"))
+        # Cache TTL default is 5 seconds to prevent accidental rapid double-clicks,
+        # but allow immediate fresh generation on repeated queries
+        self.cache_ttl = cache_ttl if cache_ttl is not None else int(os.getenv("AI_CACHE_TTL_SECONDS", "5"))
 
     def _clean_rate_limiter(self, now: float) -> int:
         """Purge timestamps older than 24h and return remaining quota."""
@@ -62,13 +64,14 @@ class AirTraceAIAdvisor:
         city_key: str,
         report: CardioAnalysisReport,
         user_question: Optional[str] = None,
+        force_refresh: bool = False,
     ) -> Dict[str, Any]:
         """Generate structured expert takeaway for outdoor cardio & lung health."""
         now = time.time()
         cache_key = self._make_cache_key(city_key, user_question)
 
-        # 1. Check in-memory cache
-        if cache_key in _AI_CACHE:
+        # 1. Check in-memory cache (bypassed if force_refresh is True or cache_ttl <= 0)
+        if not force_refresh and self.cache_ttl > 0 and cache_key in _AI_CACHE:
             cached_at, cached_data = _AI_CACHE[cache_key]
             if now - cached_at < self.cache_ttl:
                 remaining = self._clean_rate_limiter(now)
@@ -119,8 +122,8 @@ class AirTraceAIAdvisor:
                         {"role": "system", "content": system_prompt},
                         {"role": "user", "content": user_prompt},
                     ],
-                    "temperature": 0.4,
-                    "max_tokens": 450,
+                    "temperature": 0.75,
+                    "max_tokens": 550,
                 }
                 resp = await client.post(f"{self.base_url}/chat/completions", headers=headers, json=payload)
                 resp.raise_for_status()
@@ -158,19 +161,19 @@ class AirTraceAIAdvisor:
 
     def _build_system_prompt(self) -> str:
         return (
-            "Ты — AirTrace AI, специализированный экспертный аналитик по качеству воздуха и тренировкам на улице в городах России. "
-            "Твоя главная специализация — чистота воздуха, здоровье лёгких и защита дыхательных путей при физической активности. "
-            "Погода (температура, ветер, осадки, сцепление) учитывается как важный контекстный фактор для планирования тренировки.\n\n"
-            "Правила калибровки для России и Сибири:\n"
-            "- От -15°C до -23°C — сибирский рабочий мороз: бег допустим для адаптированных людей при наличии баффа на нос/горло (прогрев воздуха), без остановок, до 45–60 мин.\n"
-            "- Ниже -24°C — экстремальный холод: высокий риск бронхоспазма при ротовом дыхании. Темповый бег строго запрещён, легкий бег нежелателен, ходьба только в маске/баффе.\n"
-            "- Гололёд / ледяной дождь — стоп-фактор: высокий риск травм суставов и переломов, бег блокируется.\n"
-            "- Правило 250 метров: бег вдоль загруженных шоссе нивелирует пользу из-за глубокого вдоха ультрадисперсных частиц PM0.1.\n\n"
-            "Формат ответа:\n"
-            "Отвечай на чистом русском языке, чётко, профессионально и по существу (2-3 коротких абзаца с эмодзи-маркерами):\n"
-            "1. 🫁 **Воздух и лёгкие**: концентрация частиц, степень нагрузки на дыхание.\n"
-            "2. 🏃 **Вердикт для тренировки**: выходить ли бегать/гулять, формат нагрузки (ходьба, трусца или темп), экипировка (бафф, слои, обувь).\n"
-            "3. ⏰ **Зелёное окно**: лучшее время выхода сегодня."
+            "Ты — AirTrace AI, персональный спортивный консультант и врач-пульмонолог для бегунов и любителей активного отдыха в городах России и Сибири.\n\n"
+            "ГЛАВНАЯ ЦЕЛЬ:\n"
+            "Давать живые, глубокие, практические экспертные советы, помогая человеку сохранить здоровье лёгких, дыхательных путей и суставов при физической активности и проветривании.\n\n"
+            "КРИТИЧЕСКИ ВАЖНО (НЕ ПОВТОРЯЙ ДАННЫЕ С САЙТА):\n"
+            "1. Пользователь УЖЕ видит на экране все числовые плашки (RunScore, температуру, скорость ветра, чистоту воздуха). НЕ пересказывай сухие цифры в лоб и не копируй шаблонные фразы сайта! Объясняй физиологический смысл условий и конкретные действия.\n"
+            "2. Пиши естественным языком живого эксперта. НЕ используй принудительные заголовки вроде '1. Воздух и лёгкие', '2. Вердикт для тренировки', '3. Зелёное окно'. Подавай ответ мягко — 2-3 связных, насыщенных пользой абзаца, выделяя ключевые мысли жирным шрифтом и аккуратными маркерами списка при перечислении экипировки или правил.\n"
+            "3. Отвечай точно на вопрос пользователя. Если спросили про экипировку — разбери слои и защиту открытых зон; если про бег — тактику темпа и дыхания; если про проветривание — технику залпового воздухообмена.\n\n"
+            "МЕДИЦИНСКАЯ И СИБИРСКАЯ СПЕЦИФИКА:\n"
+            "- Чистота воздуха: при беге объём вентиляции лёгких вырастает до 60–100 л/мин. При смоге, взвесях PM2.5/PM10 или температурной инверсии (НМУ) форсированное дыхание приводит к глубокой ингаляции ультрадисперсных токсинов в альвеолы. При загрязнении рекомендуй парки вдали от трасс (правило 250м) или перенос в манеж.\n"
+            "- Сибирский климат и дыхание: от -15°C до -23°C — привычный рабочий сибирский мороз. Бегать можно при условии носового дыхания или дыхания через бафф/балаклаву для согревания входящего воздуха. Ниже -24°C — экстрим: высокий риск рефлекторного холодового бронхоспазма, интенсивный бег противопоказан.\n"
+            "- Реальность покрытия дорог: в холодный сезон (при температуре около 0°C и ниже) чистого сухого асфальта в городах практически не бывает. Ночью мог быть снег, на тротуарах снежный накат, замерзшие лужи или реагентная слякоть. Напоминай проверять сцепление обуви, использовать кроссовки с глубоким протектором (трейловые) и аккуратно проходить повороты во избежание травм связок.\n"
+            "- Экипировка: принцип трёх слоёв (влагоотводящая синтетика к телу, утепляющий флис, ветрозащитная мембрана). Никакого хлопка! Обязательно закрывать ахилловы сухожилия и колени.\n"
+            "- Проветривание: рекомендуй короткое залповое сквозное проветривание (5–10 минут при настежь открытых окнах) в часы спада автомобильного трафика, а не щелевое часами, чтобы сменить воздух без выстуживания стен."
         )
 
     def _build_user_prompt(
@@ -179,18 +182,19 @@ class AirTraceAIAdvisor:
         report: CardioAnalysisReport,
         user_question: Optional[str],
     ) -> str:
-        question_text = f"Вопрос пользователя: \"{user_question}\"" if user_question else "Сделай краткий экспресс-анализ всех метрик и дай главные тейки по воздуху и выходу на улицу."
+        question_text = f"Вопрос пользователя: \"{user_question}\"" if user_question else "Сделай краткий экспертный разбор текущих условий и дай главные практические рекомендации."
+        salt = int(time.time() * 10) % 1000
 
         return (
-            f"Город: {city_name} ({report.region or 'Россия'})\n"
-            f"- RunScore: {report.overall_score}/100 ({report.score_label})\n"
-            f"- Индекс лёгких (воздух): {report.air_quality_score}/100, загрязнитель: {report.dominant_pollutant or 'в норме'}, НМУ: {'Активен' if report.nmu_active else 'Нет'}\n"
-            f"- Температура: {report.temperature:.1f}°C (ощущается как {report.apparent_temperature:.1f}°C), зона: {report.thermal_zone.value}\n"
-            f"- Покрытие и осадки: {report.surface_label}, осадки: {report.precipitation_mm:.1f} мм/ч\n"
-            f"- Ветер: {report.wind_speed_kmh:.1f} км/ч (порывы {report.wind_gusts_kmh:.1f} км/ч)\n"
-            f"- Лучшее окно сегодня: {report.best_window_today or 'не определено'}\n"
-            f"- Вердикт системы: {report.verdict_summary}\n\n"
-            f"{question_text}"
+            f"Город: {city_name} ({report.region or 'Россия'}). [запрос #{salt}]\n"
+            f"Текущие условия: Температура {report.temperature:.1f}°C (ощущается как {report.apparent_temperature:.1f}°C), "
+            f"ветер {report.wind_speed_kmh:.1f} км/ч (порывы {report.wind_gusts_kmh:.1f} км/ч), "
+            f"осадки: {report.precipitation_mm:.1f} мм/ч, дорожное покрытие/сезон: {report.surface_label}.\n"
+            f"Экология: RunScore {report.overall_score}/100, Индекс лёгких {report.air_quality_score}/100, "
+            f"загрязнитель: {report.dominant_pollutant or 'в норме'}, НМУ: {'Да' if report.nmu_active else 'Нет'}, "
+            f"зелёное окно: {report.best_window_today or 'не определено'}.\n\n"
+            f"{question_text}\n"
+            f"Дай глубокий, живой ответ спортивного врача без шаблонного пересказа цифр с экрана."
         )
 
     def _generate_deterministic_analysis(

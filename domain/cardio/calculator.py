@@ -52,21 +52,26 @@ def determine_surface_condition(
             return SurfaceCondition.COMPACT_SNOW, PrecipitationType.BLIZZARD, "Снегопад / метель"
         if -2.0 <= temp <= 1.5:
             return SurfaceCondition.SLUSH, PrecipitationType.SNOW, "Снежная слякоть / каша"
-        return SurfaceCondition.COMPACT_SNOW, PrecipitationType.SNOW, "Укатанный сухой снег"
+        return SurfaceCondition.COMPACT_SNOW, PrecipitationType.SNOW, "Укатанный снег / зимнее покрытие"
 
     # Rain codes (61, 63, 65, 80, 81, 82, 95, 96, 99)
     if weather_code in (65, 82, 95, 96, 99) or precip_mm >= 5.0:
         return SurfaceCondition.WET, PrecipitationType.HEAVY_RAIN, "Сильный ливень / глубокие лужи"
     if weather_code in (61, 63, 80, 81) or precip_mm >= 1.5:
-        return SurfaceCondition.WET, PrecipitationType.RAIN, "Умеренный дождь / мокрый асфальт"
+        return SurfaceCondition.WET, PrecipitationType.RAIN, "Умеренный дождь / мокрое покрытие"
     if weather_code in (51, 53, 55) or (0.1 <= precip_mm < 1.5):
-        return SurfaceCondition.DAMP, PrecipitationType.DRIZZLE, "Мелкая морось / влажный асфальт"
+        return SurfaceCondition.DAMP, PrecipitationType.DRIZZLE, "Мелкая морось / влажное покрытие"
 
-    # Sub-zero thaw / freeze transition without active precip
-    if -1.5 <= temp <= 0.5:
-        return SurfaceCondition.DAMP, PrecipitationType.NONE, "Переход через ноль (возможна наледь)"
+    # Conditions without active precipitation:
+    # In Russian/Siberian reality, if temp <= 0°C, claiming "сухой чистый асфальт" is impossible:
+    # overnight snow, packed snowdrifts, residual ice or winter grime are prevalent.
+    if temp <= 0.0:
+        return SurfaceCondition.COMPACT_SNOW, PrecipitationType.NONE, "Осадков нет (вероятно зимнее покрытие / снег / накат)"
 
-    return SurfaceCondition.DRY, PrecipitationType.NONE, "Сухой асфальт / чистое покрытие"
+    if 0.0 < temp <= 3.0:
+        return SurfaceCondition.DAMP, PrecipitationType.NONE, "Осадков нет (сырость / возможна наледь в тени)"
+
+    return SurfaceCondition.DRY, PrecipitationType.NONE, "Без активных осадков (преимущественно сухо)"
 
 
 def calculate_run_score(

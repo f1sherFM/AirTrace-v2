@@ -15,6 +15,7 @@ logger = logging.getLogger(__name__)
 async def get_ai_consultation(
     city_key: str,
     question: Optional[str] = None,
+    force_refresh: bool = False,
 ) -> Dict[str, Any]:
     """Retrieve cardio telemetry for a city and generate AI consultation."""
     cities_map = get_cities_mapping()
@@ -30,6 +31,7 @@ async def get_ai_consultation(
         city_key=norm_key,
         report=report,
         user_question=question,
+        force_refresh=force_refresh,
     )
 
     return {

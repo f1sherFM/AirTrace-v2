@@ -1394,7 +1394,13 @@
 
                 line = line.replace(/\*\*(.*?)\*\*/g, '<strong class="font-bold text-white">$1</strong>');
 
-                if (line.startsWith('* ') || line.startsWith('- ')) {
+                if (line.startsWith('### ')) {
+                    if (inList) { result += '</ul>'; inList = false; }
+                    result += '<h4 class="font-bold text-emerald-300 text-sm mt-3 mb-1.5 flex items-center gap-1.5">' + line.slice(4) + '</h4>';
+                } else if (line.startsWith('## ')) {
+                    if (inList) { result += '</ul>'; inList = false; }
+                    result += '<h3 class="font-bold text-white text-base mt-3 mb-1.5">' + line.slice(3) + '</h3>';
+                } else if (line.startsWith('* ') || line.startsWith('- ')) {
                     if (!inList) {
                         result += '<ul class="space-y-1 my-1.5">';
                         inList = true;
@@ -1418,8 +1424,8 @@
                 if (responseBox && responseText) {
                     responseBox.classList.remove('hidden');
                     if (loadingBox) loadingBox.classList.add('hidden');
-                    responseText.innerHTML = '<div class="p-3 rounded-xl bg-amber-500/15 border border-amber-400/30 text-amber-200">Лимит запросов к AI на сегодня в этом браузере исчерпан (10 из 10), чтобы предотвратить перегрузку нейросети. Доступ возобновится завтра!</div>';
-                    if (responseMeta) responseMeta.textContent = 'Лимит браузера';
+                    responseText.innerHTML = '<div class="p-3 rounded-xl bg-amber-500/15 border border-amber-400/30 text-amber-200">Дневной лимит запросов к AI-Консультанту исчерпан (10 из 10 на сегодня). Доступ возобновится завтра!</div>';
+                    if (responseMeta) responseMeta.textContent = 'Дневной лимит';
                 }
                 return;
             }
@@ -1434,7 +1440,8 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         city_key: cityKey,
-                        question: questionText || null
+                        question: questionText || null,
+                        force_refresh: true
                     })
                 });
 

@@ -195,13 +195,21 @@
                 </div>
                 <div class="text-xl font-bold text-white flex items-center gap-2">
                     {% if report.surface_condition.value == 'ice' %}
-                    <span class="text-rose-400">⚠️ Гололедица</span>
+                    <span class="text-rose-400">⚠️ Гололедица / лёд</span>
                     {% elif report.surface_condition.value == 'slush' %}
-                    <span class="text-amber-300">Слякоть / мокро</span>
-                    {% elif report.surface_condition.value == 'snow' %}
-                    <span class="text-sky-200">Снежный покров</span>
+                    <span class="text-amber-300">Снежная слякоть</span>
+                    {% elif report.surface_condition.value == 'compact_snow' or report.surface_condition.value == 'snow' %}
+                    <span class="text-sky-200">Зимнее покрытие / снег</span>
+                    {% elif report.surface_condition.value == 'wet' %}
+                    <span class="text-amber-300">Мокро / лужи</span>
+                    {% elif report.surface_condition.value == 'damp' %}
+                    <span class="text-sky-300">Влажное покрытие</span>
+                    {% elif report.temperature <= 0.0 %}
+                    <span class="text-sky-200">Зимнее покрытие</span>
+                    {% elif report.temperature <= 3.0 %}
+                    <span class="text-amber-200">Сырость / таяние</span>
                     {% else %}
-                    <span class="text-emerald-300">Сухо / чистый асфальт</span>
+                    <span class="text-emerald-300">Без осадков</span>
                     {% endif %}
                 </div>
                 <div class="text-xs opacity-75 mt-1">

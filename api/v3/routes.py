@@ -131,6 +131,7 @@ from pydantic import BaseModel, Field
 class AIConsultRequest(BaseModel):
     city_key: str = Field(..., description="Код города (например, moscow, novosibirsk)")
     question: Optional[str] = Field(None, description="Пользовательский вопрос или тема консультации")
+    force_refresh: bool = Field(False, description="Принудительное обновление без кэша")
 
 
 class AIConsultResponse(BaseModel):
@@ -148,17 +149,25 @@ async def consult_ai_v3(payload: AIConsultRequest):
     """Интеллектуальная консультация по качеству воздуха и тренировкам на улице (AirTrace AI)."""
     try:
         from application.queries.ai_consult import get_ai_consultation
-        return await get_ai_consultation(city_key=payload.city_key, question=payload.question)
+        return await get_ai_consultation(
+            city_key=payload.city_key,
+            question=payload.question,
+            force_refresh=payload.force_refresh,
+        )
     except KeyError:
         raise HTTPException(status_code=404, detail=f"Город '{payload.city_key}' не найден в каталоге")
 
 
 @router.get("/ai/consult", response_model=AIConsultResponse, responses=V3_ERROR_RESPONSES)
-async def consult_ai_get_v3(city: str = Query("moscow"), q: Optional[str] = Query(None)):
+async def consult_ai_get_v3(
+    city: str = Query("moscow"),
+    q: Optional[str] = Query(None),
+    refresh: bool = Query(False),
+):
     """Интеллектуальная консультация через GET-запрос (AirTrace AI)."""
     try:
         from application.queries.ai_consult import get_ai_consultation
-        return await get_ai_consultation(city_key=city, question=q)
+        return await get_ai_consultation(city_key=city, question=q, force_refresh=refresh)
     except KeyError:
         raise HTTPException(status_code=404, detail=f"Город '{city}' не найден в каталоге")
 
