@@ -1320,6 +1320,172 @@
         initComparePage();
         initPWA();
         initShareFeatures();
+        initAiAdvisor();
+    }
+
+    // -------------------------------------------------------------
+    // 12. AirTrace AI Advisor (v3.6 Feature)
+    // -------------------------------------------------------------
+    function initAiAdvisor() {
+        const container = document.getElementById('ai-advisor-container');
+        if (!container) return;
+
+        const cityKey = container.getAttribute('data-city-key') || 'moscow';
+        const form = document.getElementById('ai-consult-form');
+        const input = document.getElementById('ai-user-query');
+        const submitBtn = document.getElementById('ai-submit-btn');
+        const responseBox = document.getElementById('ai-response-box');
+        const responseText = document.getElementById('ai-response-text');
+        const responseModel = document.getElementById('ai-response-model');
+        const responseMeta = document.getElementById('ai-response-meta');
+        const loadingBox = document.getElementById('ai-loading-box');
+        const quotaBadge = document.getElementById('ai-quota-badge');
+        const presetBtns = container.querySelectorAll('.ai-preset-btn');
+
+        const BROWSER_DAILY_LIMIT = 10;
+        const todayStr = new Date().toISOString().slice(0, 10);
+        const storageKey = 'airtrace_ai_limit_' + todayStr;
+
+        function getBrowserUsage() {
+            try {
+                const count = parseInt(localStorage.getItem(storageKey) || '0', 10);
+                return isNaN(count) ? 0 : count;
+            } catch (e) {
+                return 0;
+            }
+        }
+
+        function incrementBrowserUsage() {
+            try {
+                const current = getBrowserUsage();
+                localStorage.setItem(storageKey, String(current + 1));
+                updateQuotaDisplay();
+            } catch (e) {}
+        }
+
+        function updateQuotaDisplay() {
+            if (!quotaBadge) return;
+            const used = getBrowserUsage();
+            const left = Math.max(0, BROWSER_DAILY_LIMIT - used);
+            quotaBadge.textContent = left + ' из ' + BROWSER_DAILY_LIMIT + ' сегодня';
+            if (left === 0) {
+                quotaBadge.className = 'px-2.5 py-1 rounded-lg bg-rose-500/20 font-bold text-rose-300 border border-rose-500/30';
+            } else {
+                quotaBadge.className = 'px-2.5 py-1 rounded-lg bg-white/10 font-bold text-emerald-300 border border-white/10';
+            }
+        }
+
+        function renderMarkdown(rawText) {
+            if (!rawText) return '';
+            const escaped = escapeHtml(rawText);
+            const lines = escaped.split('\n');
+            let result = '';
+            let inList = false;
+
+            for (let line of lines) {
+                line = line.trim();
+                if (!line) {
+                    if (inList) {
+                        result += '</ul>';
+                        inList = false;
+                    }
+                    continue;
+                }
+
+                line = line.replace(/\*\*(.*?)\*\*/g, '<strong class="font-bold text-white">$1</strong>');
+
+                if (line.startsWith('* ') || line.startsWith('- ')) {
+                    if (!inList) {
+                        result += '<ul class="space-y-1 my-1.5">';
+                        inList = true;
+                    }
+                    result += '<li class="flex items-start gap-1.5"><span class="text-emerald-400">•</span><span>' + line.slice(2) + '</span></li>';
+                } else {
+                    if (inList) {
+                        result += '</ul>';
+                        inList = false;
+                    }
+                    result += '<p class="leading-relaxed">' + line + '</p>';
+                }
+            }
+            if (inList) result += '</ul>';
+            return result;
+        }
+
+        async function triggerAiConsult(questionText) {
+            const used = getBrowserUsage();
+            if (used >= BROWSER_DAILY_LIMIT) {
+                if (responseBox && responseText) {
+                    responseBox.classList.remove('hidden');
+                    if (loadingBox) loadingBox.classList.add('hidden');
+                    responseText.innerHTML = '<div class="p-3 rounded-xl bg-amber-500/15 border border-amber-400/30 text-amber-200">Лимит запросов к AI на сегодня в этом браузере исчерпан (10 из 10), чтобы предотвратить перегрузку нейросети. Доступ возобновится завтра!</div>';
+                    if (responseMeta) responseMeta.textContent = 'Лимит браузера';
+                }
+                return;
+            }
+
+            if (loadingBox) loadingBox.classList.remove('hidden');
+            if (responseBox) responseBox.classList.add('hidden');
+            if (submitBtn) submitBtn.disabled = true;
+
+            try {
+                const res = await fetch('/v3/ai/consult', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        city_key: cityKey,
+                        question: questionText || null
+                    })
+                });
+
+                if (!res.ok) {
+                    throw new Error('HTTP ' + res.status);
+                }
+
+                const data = await res.json();
+                incrementBrowserUsage();
+
+                if (responseBox && responseText) {
+                    responseText.innerHTML = renderMarkdown(data.verdict || '');
+                    if (responseModel) responseModel.textContent = data.model || 'AirTrace AI';
+                    if (responseMeta) {
+                        const cacheTag = data.cached ? ' [кэш]' : '';
+                        responseMeta.textContent = (data.generated_at || '') + cacheTag;
+                    }
+                    responseBox.classList.remove('hidden');
+                }
+            } catch (err) {
+                console.error('AI consultation error', err);
+                if (responseBox && responseText) {
+                    responseText.innerHTML = '<div class="text-rose-300">Не удалось получить ответ от нейросети. Попробуйте снова чуть позже.</div>';
+                    responseBox.classList.remove('hidden');
+                }
+            } finally {
+                if (loadingBox) loadingBox.classList.add('hidden');
+                if (submitBtn) submitBtn.disabled = false;
+                if (window.lucide && typeof window.lucide.createIcons === 'function') {
+                    window.lucide.createIcons();
+                }
+            }
+        }
+
+        presetBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                const q = btn.getAttribute('data-question') || '';
+                if (input) input.value = q;
+                triggerAiConsult(q);
+            });
+        });
+
+        if (form) {
+            form.addEventListener('submit', (e) => {
+                e.preventDefault();
+                const q = input ? input.value.trim() : '';
+                triggerAiConsult(q);
+            });
+        }
+
+        updateQuotaDisplay();
     }
 
     if (document.readyState === 'loading') {

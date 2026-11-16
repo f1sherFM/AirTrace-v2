@@ -125,6 +125,44 @@ async def get_city_cardio_v3(
         raise HTTPException(status_code=404, detail=f"Город '{city}' не найден в каталоге")
 
 
+from pydantic import BaseModel, Field
+
+
+class AIConsultRequest(BaseModel):
+    city_key: str = Field(..., description="Код города (например, moscow, novosibirsk)")
+    question: Optional[str] = Field(None, description="Пользовательский вопрос или тема консультации")
+
+
+class AIConsultResponse(BaseModel):
+    city_key: str
+    city_name: str
+    verdict: str
+    model: str
+    cached: bool
+    remaining_daily: int
+    generated_at: str
+
+
+@router.post("/ai/consult", response_model=AIConsultResponse, responses=V3_ERROR_RESPONSES)
+async def consult_ai_v3(payload: AIConsultRequest):
+    """Интеллектуальная консультация по качеству воздуха и тренировкам на улице (AirTrace AI)."""
+    try:
+        from application.queries.ai_consult import get_ai_consultation
+        return await get_ai_consultation(city_key=payload.city_key, question=payload.question)
+    except KeyError:
+        raise HTTPException(status_code=404, detail=f"Город '{payload.city_key}' не найден в каталоге")
+
+
+@router.get("/ai/consult", response_model=AIConsultResponse, responses=V3_ERROR_RESPONSES)
+async def consult_ai_get_v3(city: str = Query("moscow"), q: Optional[str] = Query(None)):
+    """Интеллектуальная консультация через GET-запрос (AirTrace AI)."""
+    try:
+        from application.queries.ai_consult import get_ai_consultation
+        return await get_ai_consultation(city_key=city, question=q)
+    except KeyError:
+        raise HTTPException(status_code=404, detail=f"Город '{city}' не найден в каталоге")
+
+
 @router.get("/current", response_model=AirQualityDataV3, responses=V3_ERROR_RESPONSES)
 async def get_current_air_quality_v3(
     city: Optional[str] = Query(None, description="Код города (например, moscow, kazan, spb)"),

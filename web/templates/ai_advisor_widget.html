@@ -1,0 +1,91 @@
+<!-- AirTrace AI Advisor Component (v3.6 Feature) -->
+<section id="ai-advisor-container" data-city-key="{{ city_key }}" data-city-name="{{ current_city.name }}" class="glass rounded-3xl p-6 md:p-8 mb-6 relative overflow-hidden border border-emerald-500/30 bg-gradient-to-br from-slate-900/90 via-emerald-950/25 to-slate-900/90 shadow-2xl">
+    <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-4 pb-4 border-b border-white/10">
+        <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-2xl bg-gradient-to-tr from-emerald-500 to-teal-300 flex items-center justify-center text-slate-950 shadow-lg shrink-0">
+                <i data-lucide="sparkles" class="w-5 h-5"></i>
+            </div>
+            <div>
+                <div class="flex items-center gap-2">
+                    <h3 class="text-xl font-bold text-white">AirTrace AI Консультант</h3>
+                    <span class="text-[10px] px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 font-bold uppercase tracking-wider">
+                        Groq • gpt-oss-120b
+                    </span>
+                </div>
+                <p class="text-xs opacity-75 mt-0.5">
+                    Умный экспресс-анализ качества воздуха, защиты лёгких и погодного контекста для г. {{ current_city.name }}.
+                </p>
+            </div>
+        </div>
+        <div class="flex items-center gap-2 text-xs">
+            <span class="opacity-60">Лимит браузера:</span>
+            <span id="ai-quota-badge" class="px-2.5 py-1 rounded-lg bg-white/10 font-bold text-emerald-300 border border-white/10">
+                10 из 10 сегодня
+            </span>
+        </div>
+    </div>
+
+    <!-- Quick Question Preset Chips -->
+    <div class="mb-4">
+        <div class="text-xs opacity-70 mb-2 font-medium">Быстрые сценарии:</div>
+        <div class="flex flex-wrap gap-2">
+            <button type="button" class="ai-preset-btn btn-glass px-3 py-1.5 rounded-xl text-xs flex items-center gap-1.5 hover:border-emerald-400/50 hover:text-emerald-200 transition-all cursor-pointer" data-question="Сделай краткий экспресс-анализ всех метрик и дай главные тейки по воздуху и выходу на улицу.">
+                <i data-lucide="zap" class="w-3.5 h-3.5 text-amber-300"></i>
+                <span>✨ Экспресс-анализ всех метрик</span>
+            </button>
+            <button type="button" class="ai-preset-btn btn-glass px-3 py-1.5 rounded-xl text-xs flex items-center gap-1.5 hover:border-emerald-400/50 hover:text-emerald-200 transition-all cursor-pointer" data-question="Стоит ли сейчас выходить на пробежку или длительную прогулку с учётом воздуха и температуры?">
+                <i data-lucide="activity" class="w-3.5 h-3.5 text-emerald-300"></i>
+                <span>🏃 Стоит ли бежать или гулять?</span>
+            </button>
+            <button type="button" class="ai-preset-btn btn-glass px-3 py-1.5 rounded-xl text-xs flex items-center gap-1.5 hover:border-emerald-400/50 hover:text-emerald-200 transition-all cursor-pointer" data-question="Какая экипировка и защита дыхания (бафф, слои, обувь) нужны прямо сейчас?">
+                <i data-lucide="shield" class="w-3.5 h-3.5 text-sky-300"></i>
+                <span>🧤 Экипировка и бафф на мороз</span>
+            </button>
+            <button type="button" class="ai-preset-btn btn-glass px-3 py-1.5 rounded-xl text-xs flex items-center gap-1.5 hover:border-emerald-400/50 hover:text-emerald-200 transition-all cursor-pointer" data-question="Когда сегодня лучшее окно для проветривания квартиры и выхода на улицу?">
+                <i data-lucide="clock" class="w-3.5 h-3.5 text-teal-300"></i>
+                <span>🪟 Проветривание и лучшее окно</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Custom Question Form -->
+    <form id="ai-consult-form" class="flex gap-2 mb-4">
+        <input 
+            type="text" 
+            id="ai-user-query" 
+            placeholder="Задайте свой вопрос нейросети (например: «У меня астма, безопасно ли сейчас выйти?»)..." 
+            class="flex-1 bg-black/40 border border-white/20 rounded-xl px-4 py-2.5 text-xs md:text-sm text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-emerald-400 transition-all"
+        />
+        <button 
+            type="submit" 
+            id="ai-submit-btn" 
+            class="btn-glass px-5 py-2.5 rounded-xl font-bold text-xs md:text-sm text-white bg-emerald-600/30 hover:bg-emerald-600/50 border-emerald-400/40 flex items-center gap-1.5 shrink-0 transition-all cursor-pointer"
+        >
+            <span>Спросить</span>
+            <i data-lucide="send" class="w-3.5 h-3.5"></i>
+        </button>
+    </form>
+
+    <!-- AI Response Output Box -->
+    <div id="ai-response-box" class="hidden panel rounded-2xl p-5 border border-emerald-500/25 bg-slate-900/80 transition-all">
+        <div class="flex items-center justify-between gap-2 text-xs pb-3 mb-3 border-b border-white/10">
+            <span class="flex items-center gap-1.5 text-emerald-300 font-bold">
+                <i data-lucide="bot" class="w-4 h-4"></i>
+                <span id="ai-response-model">AirTrace AI • openai/gpt-oss-120b</span>
+            </span>
+            <span id="ai-response-meta" class="opacity-60 text-[11px]"></span>
+        </div>
+        <div id="ai-response-text" class="text-xs md:text-sm leading-relaxed text-white/95 space-y-2"></div>
+    </div>
+
+    <!-- Loading Skeleton Box -->
+    <div id="ai-loading-box" class="hidden panel rounded-2xl p-5 border border-white/10 bg-slate-900/40 animate-pulse space-y-3">
+        <div class="flex items-center gap-2">
+            <div class="w-4 h-4 rounded-full bg-emerald-400/30 animate-spin"></div>
+            <span class="text-xs text-emerald-300 font-semibold">Нейросеть gpt-oss-120b анализирует метрики г. {{ current_city.name }}...</span>
+        </div>
+        <div class="h-3 bg-white/10 rounded w-full mt-2"></div>
+        <div class="h-3 bg-white/10 rounded w-5/6"></div>
+        <div class="h-3 bg-white/10 rounded w-2/3"></div>
+    </div>
+</section>
