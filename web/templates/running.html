@@ -160,10 +160,29 @@
                     Ощущается как: <span class="font-bold text-white">{{ "%.1f"|format(report.apparent_temperature) }}°C</span>
                 </div>
             </div>
-            <div class="mt-3 pt-2.5 border-t border-white/10 text-xs">
-                <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-white/10 text-sky-200">
+            <div class="mt-3 pt-2.5 border-t border-white/10 text-xs flex flex-col gap-1.5">
+                <div class="flex items-center gap-2">
+                    <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-sky-500/20 text-sky-300 border border-sky-400/30">
+                        {% if report.thermal_zone.value == 'extreme_freeze' %}
+                        Экстремальный мороз (≤ -24°C)
+                        {% elif report.thermal_zone.value == 'deep_freeze' %}
+                        Сибирский рабочий мороз (-15°...-23°C)
+                        {% elif report.thermal_zone.value == 'mild_winter' %}
+                        Бодрый зимний холод (-1°...-14°C)
+                        {% elif report.thermal_zone.value == 'mild_chill' %}
+                        Прохладно (0°...+5°C)
+                        {% elif report.thermal_zone.value == 'cool_optimal' %}
+                        Золотой оптимум (+5°...+15°C)
+                        {% elif report.thermal_zone.value == 'warm' %}
+                        Умеренное тепло (+15°...+24°C)
+                        {% else %}
+                        Жара (≥ +24°C)
+                        {% endif %}
+                    </span>
+                </div>
+                <div class="text-[11px] opacity-75 leading-snug">
                     {{ report.weather_summary }}
-                </span>
+                </div>
             </div>
         </div>
 

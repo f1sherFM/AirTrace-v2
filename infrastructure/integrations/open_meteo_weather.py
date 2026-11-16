@@ -25,7 +25,9 @@ class OpenMeteoWeatherService:
         self.client = create_external_async_client(
             max_connections=10,
             max_keepalive_connections=5,
+            connect_timeout=6.0,
             read_timeout=15.0,
+            trust_env=True,
         )
 
     def _cache_key(self, lat: float, lon: float) -> str:
@@ -57,8 +59,18 @@ class OpenMeteoWeatherService:
             _WEATHER_CACHE[key] = (now, processed)
             return processed
         except Exception as exc:
-            logger.warning("Failed to fetch weather from Open-Meteo: %s. Using safe defaults.", exc)
-            return self._fallback_weather()
+            logger.warning("Primary client failed to fetch weather from Open-Meteo: %s. Retrying directly with trust_env=True...", exc)
+            try:
+                async with httpx.AsyncClient(trust_env=True, timeout=httpx.Timeout(10.0, connect=5.0)) as direct_client:
+                    resp = await direct_client.get(self.base_url, params=params)
+                    resp.raise_for_status()
+                    raw = resp.json()
+                    processed = self._process_weather_payload(raw)
+                    _WEATHER_CACHE[key] = (now, processed)
+                    return processed
+            except Exception as direct_exc:
+                logger.warning("Direct client also failed: %s. Using seasonal fallback.", direct_exc)
+                return self._fallback_weather(lat, lon)
 
     def _process_weather_payload(self, raw: Dict[str, Any]) -> Dict[str, Any]:
         current_data = raw.get("current", {})
@@ -92,16 +104,34 @@ class OpenMeteoWeatherService:
             "hourly": hourly_items,
         }
 
-    def _fallback_weather(self) -> Dict[str, Any]:
+    def _fallback_weather(self, lat: float = 55.75, lon: float = 37.61) -> Dict[str, Any]:
+        """Realistic geographical & seasonal estimation if all network requests fail."""
+        if lat >= 60.0 or lon >= 90.0:  # Far North / Yakutia / East Siberia
+            base_t = -16.0
+            app_t = -22.0
+            w_code = 71
+        elif lon >= 60.0:  # West & Central Siberia / Urals (Novosibirsk, Omsk, Krasnoyarsk)
+            base_t = -7.0
+            app_t = -12.0
+            w_code = 71
+        elif lat <= 45.0:  # South / Krasnodar / Sochi
+            base_t = 12.0
+            app_t = 11.0
+            w_code = 1
+        else:  # Central European Russia (Moscow, SPb, Kazan)
+            base_t = 2.0
+            app_t = -1.0
+            w_code = 3
+
         return {
             "current": {
-                "temperature": 5.0,
-                "apparent_temperature": 4.0,
+                "temperature": base_t,
+                "apparent_temperature": app_t,
                 "precipitation": 0.0,
-                "weather_code": 0,
-                "wind_speed": 10.0,
-                "wind_gusts": 14.0,
-                "humidity": 65,
+                "weather_code": w_code,
+                "wind_speed": 12.0,
+                "wind_gusts": 16.0,
+                "humidity": 75,
             },
             "hourly": [],
         }
