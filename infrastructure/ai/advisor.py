@@ -36,14 +36,17 @@ class AirTraceAIAdvisor:
         model: Optional[str] = None,
         daily_limit: Optional[int] = None,
         cache_ttl: Optional[int] = None,
+        max_tokens: Optional[int] = None,
     ):
         self.api_key = api_key or os.getenv("GROQ_API_KEY", "")
         self.base_url = (base_url or os.getenv("AI_BASE_URL", "https://api.groq.com/openai/v1")).rstrip("/")
         self.model = model or os.getenv("AI_MODEL", "openai/gpt-oss-120b")
         self.daily_limit = daily_limit or int(os.getenv("AI_DAILY_RATE_LIMIT", "60"))
-        # Cache TTL default is 5 seconds to prevent accidental rapid double-clicks,
-        # but allow immediate fresh generation on repeated queries
-        self.cache_ttl = cache_ttl if cache_ttl is not None else int(os.getenv("AI_CACHE_TTL_SECONDS", "5"))
+        # Cache TTL default is 300 seconds (5 minutes) for non-forced requests.
+        # User interactive clicks explicitly send force_refresh=True for fresh generations.
+        self.cache_ttl = cache_ttl if cache_ttl is not None else int(os.getenv("AI_CACHE_TTL_SECONDS", "300"))
+        # Generous max_tokens for complete Cyrillic sentences without truncation
+        self.max_tokens = max_tokens or int(os.getenv("AI_MAX_TOKENS", "1200"))
 
     def _clean_rate_limiter(self, now: float) -> int:
         """Purge timestamps older than 24h and return remaining quota."""
@@ -123,7 +126,7 @@ class AirTraceAIAdvisor:
                         {"role": "user", "content": user_prompt},
                     ],
                     "temperature": 0.75,
-                    "max_tokens": 550,
+                    "max_tokens": self.max_tokens,
                 }
                 resp = await client.post(f"{self.base_url}/chat/completions", headers=headers, json=payload)
                 resp.raise_for_status()
@@ -173,7 +176,8 @@ class AirTraceAIAdvisor:
             "- Сибирский климат и дыхание: от -15°C до -23°C — привычный рабочий сибирский мороз. Бегать можно при условии носового дыхания или дыхания через бафф/балаклаву для согревания входящего воздуха. Ниже -24°C — экстрим: высокий риск рефлекторного холодового бронхоспазма, интенсивный бег противопоказан.\n"
             "- Реальность покрытия дорог: в холодный сезон (при температуре около 0°C и ниже) чистого сухого асфальта в городах практически не бывает. Ночью мог быть снег, на тротуарах снежный накат, замерзшие лужи или реагентная слякоть. Напоминай проверять сцепление обуви, использовать кроссовки с глубоким протектором (трейловые) и аккуратно проходить повороты во избежание травм связок.\n"
             "- Экипировка: принцип трёх слоёв (влагоотводящая синтетика к телу, утепляющий флис, ветрозащитная мембрана). Никакого хлопка! Обязательно закрывать ахилловы сухожилия и колени.\n"
-            "- Проветривание: рекомендуй короткое залповое сквозное проветривание (5–10 минут при настежь открытых окнах) в часы спада автомобильного трафика, а не щелевое часами, чтобы сменить воздух без выстуживания стен."
+            "- Проветривание: рекомендуй короткое залповое сквозное проветривание (5–10 минут при настежь открытых окнах) в часы спада автомобильного трафика, а не щелевое часами, чтобы сменить воздух без выстуживания стен.\n"
+            "- Полнота ответа: всегда доводи все мысли, рекомендации и пункты списков до логического завершения, аккуратно закрывай структуру и никогда не обрывай предложения на полуслове."
         )
 
     def _build_user_prompt(
