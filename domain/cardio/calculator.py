@@ -44,34 +44,34 @@ def determine_surface_condition(
     """
     # Freezing rain / Glaze (WMO codes 56, 57, 66, 67)
     if weather_code in (56, 57, 66, 67):
-        return SurfaceCondition.ICE, PrecipitationType.FREEZING_RAIN, "Гололедица / ледяной дождь"
+        return SurfaceCondition.ICE, PrecipitationType.FREEZING_RAIN, "Гололедица / ледяной дождь (требует проверки)"
 
     # Snow codes (71, 73, 75, 77, 85, 86)
     if weather_code in (71, 73, 75, 77, 85, 86) or (precip_mm > 0 and temp <= -1.0):
         if weather_code in (75, 86) or precip_mm >= 3.0:
-            return SurfaceCondition.COMPACT_SNOW, PrecipitationType.BLIZZARD, "Снегопад / метель"
+            return SurfaceCondition.COMPACT_SNOW, PrecipitationType.BLIZZARD, "Снегопад / метель (требует проверки)"
         if -2.0 <= temp <= 1.5:
-            return SurfaceCondition.SLUSH, PrecipitationType.SNOW, "Снежная слякоть / каша"
-        return SurfaceCondition.COMPACT_SNOW, PrecipitationType.SNOW, "Укатанный снег / зимнее покрытие"
+            return SurfaceCondition.SLUSH, PrecipitationType.SNOW, "Снежная слякоть / каша (требует проверки)"
+        return SurfaceCondition.COMPACT_SNOW, PrecipitationType.SNOW, "Укатанный снег / зимнее покрытие (требует проверки)"
 
     # Rain codes (61, 63, 65, 80, 81, 82, 95, 96, 99)
     if weather_code in (65, 82, 95, 96, 99) or precip_mm >= 5.0:
-        return SurfaceCondition.WET, PrecipitationType.HEAVY_RAIN, "Сильный ливень / глубокие лужи"
+        return SurfaceCondition.WET, PrecipitationType.HEAVY_RAIN, "Сильный ливень / глубокие лужи (требует проверки)"
     if weather_code in (61, 63, 80, 81) or precip_mm >= 1.5:
-        return SurfaceCondition.WET, PrecipitationType.RAIN, "Умеренный дождь / мокрое покрытие"
+        return SurfaceCondition.WET, PrecipitationType.RAIN, "Умеренный дождь / мокрое покрытие (требует проверки)"
     if weather_code in (51, 53, 55) or (0.1 <= precip_mm < 1.5):
-        return SurfaceCondition.DAMP, PrecipitationType.DRIZZLE, "Мелкая морось / влажное покрытие"
+        return SurfaceCondition.DAMP, PrecipitationType.DRIZZLE, "Мелкая морось / влажное покрытие (требует проверки)"
 
     # Conditions without active precipitation:
     # In Russian/Siberian reality, if temp <= 0°C, claiming "сухой чистый асфальт" is impossible:
     # overnight snow, packed snowdrifts, residual ice or winter grime are prevalent.
     if temp <= 0.0:
-        return SurfaceCondition.COMPACT_SNOW, PrecipitationType.NONE, "Осадков нет (вероятно зимнее покрытие / снег / накат)"
+        return SurfaceCondition.COMPACT_SNOW, PrecipitationType.NONE, "Осадков нет (вероятен снег / накат — требует проверки)"
 
     if 0.0 < temp <= 3.0:
-        return SurfaceCondition.DAMP, PrecipitationType.NONE, "Осадков нет (сырость / возможна наледь в тени)"
+        return SurfaceCondition.DAMP, PrecipitationType.NONE, "Осадков нет (сырость / возможна наледь — требует проверки)"
 
-    return SurfaceCondition.DRY, PrecipitationType.NONE, "Без активных осадков (преимущественно сухо)"
+    return SurfaceCondition.DRY, PrecipitationType.NONE, "Без активных осадков (преимущественно сухой асфальт)"
 
 
 def calculate_run_score(
@@ -533,6 +533,17 @@ def analyze_city_cardio(
         checklist.append("Кепка со светлым козырьком и солнцезащитные очки")
 
     hydration = 600 if thermal_zone == ThermalZone.HEAT else (450 if thermal_zone == ThermalZone.DEEP_FREEZE else 500)
+    requires_surface_check = (
+        temp <= 3.0
+        or precip_mm > 0.0
+        or surface in (
+            SurfaceCondition.ICE,
+            SurfaceCondition.SLUSH,
+            SurfaceCondition.COMPACT_SNOW,
+            SurfaceCondition.WET,
+            SurfaceCondition.DAMP,
+        )
+    )
 
     return CardioAnalysisReport(
         city_key=city_key,
@@ -553,6 +564,7 @@ def analyze_city_cardio(
         thermal_zone=thermal_zone,
         surface_condition=surface,
         surface_label=surface_label,
+        requires_surface_check=requires_surface_check,
         precipitation_mm=precip_mm,
         wind_speed_kmh=wind_kmh,
         wind_gusts_kmh=wind_gusts,

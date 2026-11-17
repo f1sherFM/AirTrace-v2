@@ -193,7 +193,7 @@
                     <span class="font-semibold uppercase tracking-wider">Покрытие и осадки</span>
                     <i data-lucide="footprints" class="w-4 h-4 text-emerald-300"></i>
                 </div>
-                <div class="text-xl font-bold text-white flex items-center gap-2">
+                <div class="text-xl font-bold text-white flex flex-wrap items-center gap-2">
                     {% if report.surface_condition.value == 'ice' %}
                     <span class="text-rose-400">⚠️ Гололедица / лёд</span>
                     {% elif report.surface_condition.value == 'slush' %}
@@ -210,6 +210,13 @@
                     <span class="text-amber-200">Сырость / таяние</span>
                     {% else %}
                     <span class="text-emerald-300">Без осадков</span>
+                    {% endif %}
+
+                    {% if report.requires_surface_check %}
+                    <span class="px-2 py-0.5 rounded-full text-[11px] font-semibold bg-amber-500/20 text-amber-300 border border-amber-400/30 flex items-center gap-1">
+                        <i data-lucide="alert-triangle" class="w-3 h-3"></i>
+                        <span>требует проверки</span>
+                    </span>
                     {% endif %}
                 </div>
                 <div class="text-xs opacity-75 mt-1">

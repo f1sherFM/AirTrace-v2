@@ -99,6 +99,7 @@ class CardioAnalysisReport(BaseModel):
     thermal_zone: ThermalZone
     surface_condition: SurfaceCondition
     surface_label: str
+    requires_surface_check: bool = False
     precipitation_mm: float
     wind_speed_kmh: float
     wind_gusts_kmh: float
